@@ -1,0 +1,6 @@
+data/
+hoppscotch-team-collections.json
+serve.py
+start-server.sh
+.claude/
+.DS_Store

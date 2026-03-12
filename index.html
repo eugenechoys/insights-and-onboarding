@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Choys Intelligence</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ============ LANDING PAGE ============ -->
+  <div id="landing" class="screen active">
+    <div class="landing-container">
+      <div class="landing-logo">
+        <div class="logo-icon">C</div>
+        <h1>Choys Intelligence</h1>
+        <p class="landing-subtitle">AI-powered employee wellness insights</p>
+      </div>
+      <div class="landing-cards">
+        <div class="landing-card" onclick="enterExisting()">
+          <div class="card-icon">📊</div>
+          <h3>Existing Customer</h3>
+          <p>Deep dive into your tenant data — WoW trends, feature adoption, stickiness, AI insights</p>
+          <div class="card-arrow">→</div>
+        </div>
+        <div class="landing-card" onclick="enterNew()">
+          <div class="card-icon">💬</div>
+          <h3>New Customer</h3>
+          <p>Talk to our AI agent — it will understand your company and suggest tailored wellness programs</p>
+          <div class="card-arrow">→</div>
+        </div>
+      </div>
+      <button class="settings-link" onclick="enterSettings()">Settings</button>
+    </div>
+  </div>
+
+  <!-- ============ CHAT AGENT (New Customer) ============ -->
+  <div id="chat-screen" class="screen">
+    <div class="chat-container">
+      <div class="chat-header">
+        <button class="back-btn" onclick="goHome()">← Back</button>
+        <div class="chat-header-info">
+          <div class="agent-avatar">C</div>
+          <div>
+            <h3>Choys Agent</h3>
+            <span class="agent-status">Online</span>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="btn btn-sm btn-ghost" onclick="resetChat()">Start Over</button>
+        </div>
+      </div>
+      <div class="chat-progress"><div class="chat-progress-bar" id="chat-progress" style="width:0%"></div></div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div id="chat-options" class="chat-options"></div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+        <button class="chat-send" id="chat-send" onclick="sendUserMessage()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD (Existing Customer) ============ -->
+  <div id="dashboard-screen" class="screen">
+    <div class="dash-layout">
+      <!-- Sidebar -->
+      <nav class="dash-sidebar">
+        <div class="dash-logo" onclick="goHome()">
+          <div class="logo-icon sm">C</div>
+          <span>Choys</span>
+        </div>
+        <ul class="dash-nav">
+          <li class="active" data-tab="intelligence">Intelligence</li>
+          <li data-tab="settings">Settings</li>
+        </ul>
+        <div class="dash-sidebar-footer">
+          <div id="dash-auth" class="auth-indicator">
+            <span class="dot red"></span> Not Connected
+          </div>
+        </div>
+      </nav>
+
+      <!-- Content -->
+      <main class="dash-content">
+        <!-- Sticky Header with Period Selector -->
+        <header class="dash-header">
+          <div>
+            <h1 id="dash-title">Intelligence Dashboard</h1>
+            <span class="text-muted" id="dash-subtitle">AI-powered analysis of your Choys tenant</span>
+          </div>
+          <div class="dash-actions">
+            <select id="tenant-select" class="tenant-select" onchange="onTenantChange()">
+              <option value="all">All Tenants (Global)</option>
+            </select>
+            <select id="period-select" class="period-select" onchange="onPeriodChange()">
+              <option value="1">Last 1 Month</option>
+              <option value="3" selected>Last 3 Months</option>
+              <option value="6">Last 6 Months</option>
+              <option value="12">Last 12 Months</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadIntelligence()">Refresh</button>
+          </div>
+        </header>
+
+        <!-- ===== UNIFIED INTELLIGENCE VIEW ===== -->
+        <div class="dash-tab active" id="tab-intelligence">
+
+          <!-- A. Health Score Hero -->
+          <div class="health-hero">
+            <div class="health-score-ring">
+              <canvas id="health-ring" width="160" height="160"></canvas>
+              <div class="health-score-label">
+                <span class="health-val" id="health-score">--</span>
+                <span class="health-sub">Health Score</span>
+              </div>
+            </div>
+            <div class="health-summary">
+              <h2 id="health-headline">Loading your wellness data...</h2>
+              <p class="text-muted" id="health-subline">Connect your API token in Settings to see live data</p>
+              <div class="health-badges" id="health-badges"></div>
+            </div>
+          </div>
+
+          <!-- B. AI Key Insights Strip -->
+          <div class="ai-insights-strip" id="ai-insights-strip">
+            <div class="ai-strip-loading"><div class="spinner"></div><span class="text-muted">AI analyzing your data...</span></div>
+          </div>
+
+          <!-- C. Signal Cards -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Key Signals</h3>
+            </div>
+            <div class="section-body">
+              <div class="signal-grid" id="signal-grid">
+                <div class="signal-card"><div class="sig-icon">👥</div><div class="sig-body"><span class="sig-label">Total Users</span><span class="sig-val" id="sv-users">--</span><span class="sig-delta" id="sd-users"></span></div></div>
+                <div class="signal-card"><div class="sig-icon">⚡</div><div class="sig-body"><span class="sig-label">Active This Week</span><span class="sig-val" id="sv-active">--</span><span class="sig-delta" id="sd-active"></span></div></div>
+                <div class="signal-card"><div class="sig-icon">🧲</div><div class="sig-body"><span class="sig-label">Stickiness</span><span class="sig-val" id="sv-stickiness">--</span><span class="sig-delta" id="sd-stickiness"></span></div></div>
+                <div class="signal-card"><div class="sig-icon">😊</div><div class="sig-body"><span class="sig-label">Mood Records</span><span class="sig-val" id="sv-mood">--</span><span class="sig-delta" id="sd-mood"></span></div></div>
+                <div class="signal-card"><div class="sig-icon">🏅</div><div class="sig-body"><span class="sig-label">Recognitions</span><span class="sig-val" id="sv-recog">--</span><span class="sig-delta" id="sd-recog"></span></div></div>
+                <div class="signal-card"><div class="sig-icon">🚶</div><div class="sig-body"><span class="sig-label">Total Steps</span><span class="sig-val" id="sv-steps">--</span><span class="sig-delta" id="sd-steps"></span></div></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- D. Engagement & Retention (2-col) -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Engagement & Retention</h3>
+            </div>
+            <div class="section-body">
+              <div class="two-col">
+                <div class="chart-card">
+                  <h4>Engagement Funnel</h4>
+                  <div class="funnel-visual" id="funnel-bars"></div>
+                  <div class="so-what" id="funnel-sowhat"></div>
+                </div>
+                <div class="chart-card">
+                  <h4>Retention Health</h4>
+                  <canvas id="c-retention-donut" height="220"></canvas>
+                  <div id="retention-legend" class="retention-legend"></div>
+                  <div class="so-what" id="retention-sowhat"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- E. Feature Adoption & Activity (2-col) -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Feature Adoption & Activity</h3>
+            </div>
+            <div class="section-body">
+              <div class="two-col">
+                <div class="chart-card"><h4>Activity Trend</h4><canvas id="c-activity" height="180"></canvas></div>
+                <div class="chart-card"><h4>Feature Adoption</h4><div class="feature-bars" id="feature-bars"></div></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- F. Mood & Wellness (2-col) -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Mood & Wellness</h3>
+            </div>
+            <div class="section-body">
+              <div class="mood-stats-row" id="mood-kpis"></div>
+              <div class="two-col">
+                <div class="chart-card">
+                  <h4>Mood Trend</h4>
+                  <canvas id="c-mood-trend" height="160"></canvas>
+                </div>
+                <div class="chart-card">
+                  <h4>Mood Distribution</h4>
+                  <canvas id="c-mood-dist" height="140"></canvas>
+                </div>
+              </div>
+              <div class="so-what" id="mood-sowhat"></div>
+            </div>
+          </section>
+
+          <!-- G. Recognition & Culture -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Recognition & Culture</h3>
+            </div>
+            <div class="section-body">
+              <div class="recog-layout">
+                <div class="recog-feed" id="recog-feed-list"></div>
+                <div class="recog-leaderboard" id="recog-leaderboard"></div>
+              </div>
+              <div class="chart-card full-width" id="recog-section" style="display:none;margin-top:12px">
+                <h4>Recognition Values</h4>
+                <div class="value-chips" id="value-chips"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- H. Coins & Productivity (2-col) -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Coins & Productivity</h3>
+            </div>
+            <div class="section-body">
+              <div class="two-col">
+                <div class="chart-card">
+                  <h4>Coins Economy</h4>
+                  <div class="coins-kpis" id="coins-kpis"></div>
+                  <canvas id="c-coins-full" height="180"></canvas>
+                  <div id="gift-stats" style="margin-top:12px"></div>
+                </div>
+                <div class="chart-card">
+                  <h4>Productivity & Usage</h4>
+                  <div class="prod-row">
+                    <canvas id="c-work-personal" width="140" height="140"></canvas>
+                    <div class="prod-details">
+                      <canvas id="c-actions-trend" height="120"></canvas>
+                      <div id="burnout-indicator" style="margin-top:8px"></div>
+                    </div>
+                  </div>
+                  <div class="so-what" id="productivity-sowhat"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- I. Success Tracker -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> Success Tracker <span class="text-muted">(4-Week Targets)</span></h3>
+            </div>
+            <div class="section-body">
+              <div id="success-tracker-bars"></div>
+            </div>
+          </section>
+
+          <!-- J. People Directory (collapsed by default) -->
+          <section class="intel-section collapsed" data-default="collapsed">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▸</span> People Directory</h3>
+            </div>
+            <div class="section-body">
+              <div class="people-controls">
+                <input id="people-search" class="input" placeholder="Search by name..." style="max-width:300px" oninput="filterPeople()">
+                <span class="text-muted" id="people-count"></span>
+              </div>
+              <div class="people-table-wrap">
+                <table class="people-table"><thead><tr><th>Name</th><th>Tenant</th><th>Status</th><th>Role</th><th>Last Login</th><th>Joined</th></tr></thead><tbody id="people-tbody"></tbody></table>
+              </div>
+            </div>
+          </section>
+
+          <!-- K. AI Verdict + Custom Analysis -->
+          <section class="intel-section" data-default="open">
+            <div class="section-header" onclick="toggleSection(this)">
+              <h3><span class="section-chevron">▾</span> AI Deep Analysis</h3>
+            </div>
+            <div class="section-body">
+              <div class="ai-verdict-card">
+                <div class="verdict-header">
+                  <h3>AI Verdict</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="runDeepAnalysis()" id="btn-verdict">Regenerate</button>
+                </div>
+                <div id="ai-verdict" class="verdict-body">
+                  <div style="text-align:center;padding:20px"><div class="spinner"></div><p class="text-muted" style="margin-top:8px">AI deep analysis will load automatically...</p></div>
+                </div>
+              </div>
+              <div class="chart-card" style="margin-top:12px">
+                <h4>Custom Question</h4>
+                <p class="text-muted" style="margin-bottom:8px;font-size:12px">Ask anything about your data.</p>
+                <div class="custom-ask">
+                  <input id="custom-q" class="input" placeholder="e.g. Why is stickiness dropping? Which team uses mood tracking most?">
+                  <button class="btn btn-primary" onclick="askCustom()">Ask</button>
+                </div>
+                <div id="custom-answer" class="deep-content" style="margin-top:12px"></div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+
+        <!-- ===== SETTINGS TAB ===== -->
+        <div class="dash-tab" id="tab-settings">
+          <div class="settings-form">
+            <h3>API Connection</h3>
+            <div class="fg"><label>Base URL</label><input id="s-url" class="input" value="https://api.dev.choysapp.com"></div>
+            <div class="fg"><label>Access Token</label><textarea id="s-token" class="input" rows="3" placeholder="Paste access token..."></textarea></div>
+            <div class="fg"><label>OpenAI API Key</label><input id="s-oai" type="password" class="input" placeholder="sk-..."></div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="saveSettings()">Save & Connect</button>
+              <button class="btn btn-secondary" onclick="testConnection()">Test</button>
+            </div>
+            <div id="conn-status" class="mt-1"></div>
+            <hr>
+            <h3>OTP Login</h3>
+            <div class="fg"><label>Email</label><input id="s-email" class="input" value="eugene@getchoys.com"></div>
+            <button class="btn btn-secondary" onclick="sendOTP()">Send OTP</button>
+            <div class="fg mt-1"><label>Code</label><input id="s-otp" class="input" placeholder="6-digit code"></div>
+            <button class="btn btn-primary" onclick="verifyOTP()">Verify</button>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS (from landing) ============ -->
+  <div id="settings-screen" class="screen">
+    <div class="settings-standalone">
+      <button class="back-btn" onclick="goHome()">← Back</button>
+      <h2>Settings</h2>
+      <div class="fg"><label>Base URL</label><input id="ls-url" class="input" value="https://api.dev.choysapp.com"></div>
+      <div class="fg"><label>Access Token</label><textarea id="ls-token" class="input" rows="3" placeholder="Paste access token..."></textarea></div>
+      <div class="fg"><label>OpenAI API Key</label><input id="ls-oai" type="password" class="input" placeholder="sk-..."></div>
+      <button class="btn btn-primary" onclick="saveLandingSettings()">Save</button>
+      <div id="ls-status" class="mt-1"></div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
