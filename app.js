@@ -101,6 +101,48 @@ function onPeriodChange() {
   loadIntelligence();
 }
 
+// ---- Environment Selector ----
+const ENV_URLS = {
+  dev: 'https://api.dev.choysapp.com',
+  prod: 'https://prodapi.choysapp.com'
+};
+
+function onEnvChange() {
+  const env = document.getElementById('env-select')?.value || 'dev';
+  const newUrl = ENV_URLS[env];
+  ChoysAPI.baseUrl = newUrl;
+  localStorage.setItem('choys_base_url', newUrl);
+  // Clear current tokens — user must re-auth for new env
+  ChoysAPI.accessToken = '';
+  ChoysAPI.refreshToken = '';
+  ChoysAPI.selectedTenantId = null;
+  localStorage.removeItem('choys_access_token');
+  localStorage.removeItem('choys_refresh_token');
+  // Update settings UI
+  syncSettingsUI();
+  updateDashAuth();
+  // Reset tenant dropdown
+  const tSel = document.getElementById('tenant-select');
+  if (tSel) tSel.innerHTML = '<option value="all">All Tenants (Global)</option>';
+  // Switch to settings tab so user can authenticate
+  document.querySelectorAll('.dash-nav li').forEach(l => l.classList.remove('active'));
+  document.querySelector('.dash-nav li[data-tab="settings"]')?.classList.add('active');
+  document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-settings')?.classList.add('active');
+  document.getElementById('dash-title').textContent = 'Settings';
+  document.getElementById('dash-subtitle').textContent = `Switched to ${env.toUpperCase()} — please authenticate`;
+  document.getElementById('conn-status').innerHTML = `<span style="color:var(--yellow)">Switched to ${env.toUpperCase()}. Please send OTP to authenticate.</span>`;
+}
+
+function initEnvSelector() {
+  const sel = document.getElementById('env-select');
+  if (!sel) return;
+  // Detect current env from stored base URL
+  const current = ChoysAPI.baseUrl;
+  if (current.includes('prodapi')) sel.value = 'prod';
+  else sel.value = 'dev';
+}
+
 // ---- Tenant Selector ----
 let _tenantList = [];
 let _currentTenantName = '';
@@ -1333,7 +1375,12 @@ function showHandoff() {
 
 // ---- Init ----
 (function() {
-  // Keys are loaded from localStorage (set via Settings UI)
+  // Load OpenAI key from Vercel env (injected via env.js) or localStorage
+  if (!ChoysAPI.openaiKey && window.__ENV__?.OPENAI_API_KEY) {
+    ChoysAPI.openaiKey = window.__ENV__.OPENAI_API_KEY;
+    localStorage.setItem('choys_openai_key', ChoysAPI.openaiKey);
+  }
   syncSettingsUI();
   updateDashAuth();
+  initEnvSelector();
 })();

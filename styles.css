@@ -166,7 +166,9 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
 .sig-delta{font-size:11px;font-weight:500}
 .sig-delta.up{color:var(--green)}.sig-delta.down{color:var(--red)}.sig-delta.flat{color:var(--muted)}
 
-/* --- Tenant Selector --- */
+/* --- Environment & Tenant Selector --- */
+.env-select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:var(--rs);font-size:12px;outline:none;cursor:pointer;font-family:inherit;font-weight:600;min-width:70px}
+.env-select:focus{border-color:var(--primary)}
 .tenant-select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:var(--rs);font-size:12px;outline:none;cursor:pointer;font-family:inherit;max-width:200px}
 .tenant-select:focus{border-color:var(--primary)}
 
@@ -371,7 +373,7 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
   .health-val{font-size:28px}
   .funnel-bar-label{width:80px;font-size:10px}
   .dash-actions{gap:4px}
-  .period-select,.tenant-select{font-size:11px;padding:4px 8px}
+  .period-select,.tenant-select,.env-select{font-size:11px;padding:4px 8px}
   .mood-stats-row{flex-wrap:wrap}
   .mini-stat{min-width:80px}
   .people-table{font-size:11px}
