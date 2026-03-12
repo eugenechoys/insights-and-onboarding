@@ -33,7 +33,38 @@
           <div class="card-arrow">→</div>
         </div>
       </div>
-      <button class="settings-link" onclick="enterSettings()">Settings</button>
+    </div>
+  </div>
+
+  <!-- ============ LOGIN SCREEN ============ -->
+  <div id="login-screen" class="screen">
+    <div class="login-container">
+      <button class="back-btn" onclick="goHome()">← Back</button>
+      <div class="login-box">
+        <div class="logo-icon">C</div>
+        <h2>Sign In</h2>
+        <p class="text-muted">Enter your email to access the Intelligence Dashboard</p>
+        <div class="login-env-row">
+          <label>Environment</label>
+          <select id="login-env" class="env-select" onchange="onLoginEnvChange()">
+            <option value="dev">DEV</option>
+            <option value="prod">PROD</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Email</label>
+          <input id="login-email" class="input" type="email" placeholder="you@company.com">
+        </div>
+        <button class="btn btn-primary full-width" id="btn-send-otp" onclick="loginSendOTP()">Send OTP</button>
+        <div id="login-otp-section" style="display:none">
+          <div class="fg mt-1">
+            <label>Verification Code</label>
+            <input id="login-otp" class="input" placeholder="6-digit code" maxlength="6">
+          </div>
+          <button class="btn btn-primary full-width" id="btn-verify-otp" onclick="loginVerifyOTP()">Verify & Enter</button>
+        </div>
+        <div id="login-status" class="mt-1"></div>
+      </div>
     </div>
   </div>
 
@@ -76,12 +107,12 @@
         </div>
         <ul class="dash-nav">
           <li class="active" data-tab="intelligence">Intelligence</li>
-          <li data-tab="settings">Settings</li>
         </ul>
         <div class="dash-sidebar-footer">
           <div id="dash-auth" class="auth-indicator">
-            <span class="dot red"></span> Not Connected
+            <span class="dot green"></span> Connected
           </div>
+          <button class="btn btn-ghost btn-sm" onclick="logout()" style="margin-top:8px;font-size:11px;color:var(--muted)">Sign Out</button>
         </div>
       </nav>
 
@@ -308,42 +339,12 @@
 
         </div>
 
-        <!-- ===== SETTINGS TAB ===== -->
-        <div class="dash-tab" id="tab-settings">
-          <div class="settings-form">
-            <h3>API Connection</h3>
-            <div class="fg"><label>Base URL</label><input id="s-url" class="input" value="https://api.dev.choysapp.com"></div>
-            <div class="fg"><label>Access Token</label><textarea id="s-token" class="input" rows="3" placeholder="Paste access token..."></textarea></div>
-            <div class="fg"><label>OpenAI API Key</label><input id="s-oai" type="password" class="input" placeholder="sk-..."></div>
-            <div class="btn-row">
-              <button class="btn btn-primary" onclick="saveSettings()">Save & Connect</button>
-              <button class="btn btn-secondary" onclick="testConnection()">Test</button>
-            </div>
-            <div id="conn-status" class="mt-1"></div>
-            <hr>
-            <h3>OTP Login</h3>
-            <div class="fg"><label>Email</label><input id="s-email" class="input" value="eugene@getchoys.com"></div>
-            <button class="btn btn-secondary" onclick="sendOTP()">Send OTP</button>
-            <div class="fg mt-1"><label>Code</label><input id="s-otp" class="input" placeholder="6-digit code"></div>
-            <button class="btn btn-primary" onclick="verifyOTP()">Verify</button>
-          </div>
-        </div>
+        <!-- Settings tab removed — auth handled via login screen -->
       </main>
     </div>
   </div>
 
-  <!-- ============ SETTINGS (from landing) ============ -->
-  <div id="settings-screen" class="screen">
-    <div class="settings-standalone">
-      <button class="back-btn" onclick="goHome()">← Back</button>
-      <h2>Settings</h2>
-      <div class="fg"><label>Base URL</label><input id="ls-url" class="input" value="https://api.dev.choysapp.com"></div>
-      <div class="fg"><label>Access Token</label><textarea id="ls-token" class="input" rows="3" placeholder="Paste access token..."></textarea></div>
-      <div class="fg"><label>OpenAI API Key</label><input id="ls-oai" type="password" class="input" placeholder="sk-..."></div>
-      <button class="btn btn-primary" onclick="saveLandingSettings()">Save</button>
-      <div id="ls-status" class="mt-1"></div>
-    </div>
-  </div>
+  <!-- Settings screen removed — auth handled via login screen -->
 
   <script src="api.js"></script>
   <script src="app.js"></script>

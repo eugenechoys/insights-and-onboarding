@@ -1,10 +1,23 @@
+// === Cookie Helpers ===
+function setCookie(name, value, days = 7) {
+  const d = new Date(); d.setTime(d.getTime() + days * 86400000);
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Strict`;
+}
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? decodeURIComponent(match[2]) : '';
+}
+function deleteCookie(name) {
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+}
+
 // === Choys API Client ===
 const ChoysAPI = {
-  baseUrl: localStorage.getItem('choys_base_url') || 'https://api.dev.choysapp.com',
-  accessToken: localStorage.getItem('choys_access_token') || '',
-  refreshToken: localStorage.getItem('choys_refresh_token') || '',
-  openaiKey: localStorage.getItem('choys_openai_key') || '',
-  selectedTenantId: null, // null = use token's default tenant
+  baseUrl: getCookie('choys_env') === 'prod' ? 'https://prodapi.choysapp.com' : 'https://api.dev.choysapp.com',
+  accessToken: getCookie('choys_access_token') || '',
+  refreshToken: getCookie('choys_refresh_token') || '',
+  openaiKey: '',
+  selectedTenantId: null,
 
   headers() {
     const h = {
@@ -25,14 +38,13 @@ const ChoysAPI = {
     try {
       const res = await fetch(`${this.baseUrl}${path}`, opts);
       const data = await res.json();
-      // Auto-refresh token if present in response
       if (data?.data?.accessToken) {
         this.accessToken = data.data.accessToken;
-        localStorage.setItem('choys_access_token', data.data.accessToken);
+        setCookie('choys_access_token', data.data.accessToken);
       }
       if (data?.data?.refreshToken) {
         this.refreshToken = data.data.refreshToken;
-        localStorage.setItem('choys_refresh_token', data.data.refreshToken);
+        setCookie('choys_refresh_token', data.data.refreshToken);
       }
       return data;
     } catch (e) {
@@ -112,7 +124,7 @@ const ChoysAPI = {
   // === OpenAI Integration ===
   async chatWithAI(messages, { json = false, maxTokens = 2000 } = {}) {
     if (!this.openaiKey) {
-      return { error: true, message: 'OpenAI API key not set. Go to Settings.' };
+      return { error: true, message: 'OpenAI API key not configured.' };
     }
     try {
       const body = {
@@ -142,14 +154,25 @@ const ChoysAPI = {
     ]);
   },
 
-  // Save settings
-  saveSettings(baseUrl, token, openaiKey) {
-    this.baseUrl = baseUrl;
-    this.accessToken = token;
-    this.openaiKey = openaiKey;
-    localStorage.setItem('choys_base_url', baseUrl);
-    localStorage.setItem('choys_access_token', token);
-    localStorage.setItem('choys_openai_key', openaiKey);
+  setEnv(env) {
+    const url = env === 'prod' ? 'https://prodapi.choysapp.com' : 'https://api.dev.choysapp.com';
+    this.baseUrl = url;
+    setCookie('choys_env', env);
+  },
+
+  saveAuth(accessToken, refreshToken) {
+    this.accessToken = accessToken;
+    if (refreshToken) this.refreshToken = refreshToken;
+    setCookie('choys_access_token', accessToken);
+    if (refreshToken) setCookie('choys_refresh_token', refreshToken);
+  },
+
+  clearAuth() {
+    this.accessToken = '';
+    this.refreshToken = '';
+    this.selectedTenantId = null;
+    deleteCookie('choys_access_token');
+    deleteCookie('choys_refresh_token');
   },
 
   isConnected() {

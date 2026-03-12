@@ -6,82 +6,88 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 function goHome() { showScreen('landing'); }
-function enterExisting() { showScreen('dashboard-screen'); if (ChoysAPI.isConnected()) loadIntelligence(); }
-function enterNew() { showScreen('chat-screen'); if (!chatState.started) startChat(); }
-function enterSettings() {
-  showScreen('settings-screen');
-  document.getElementById('ls-url').value = ChoysAPI.baseUrl;
-  document.getElementById('ls-token').value = ChoysAPI.accessToken;
-  document.getElementById('ls-oai').value = ChoysAPI.openaiKey;
-}
-
-// ---- Landing Settings ----
-function saveLandingSettings() {
-  ChoysAPI.saveSettings(
-    document.getElementById('ls-url').value,
-    document.getElementById('ls-token').value,
-    document.getElementById('ls-oai').value
-  );
-  document.getElementById('ls-status').innerHTML = '<span style="color:var(--green)">Saved!</span>';
-  syncSettingsUI();
-}
-
-// ---- Dashboard Settings ----
-function saveSettings() {
-  ChoysAPI.saveSettings(
-    document.getElementById('s-url').value,
-    document.getElementById('s-token').value,
-    document.getElementById('s-oai').value
-  );
-  document.getElementById('conn-status').innerHTML = '<span style="color:var(--green)">Saved!</span>';
-  updateDashAuth();
-}
-async function testConnection() {
-  document.getElementById('conn-status').innerHTML = '<span style="color:var(--yellow)">Testing...</span>';
-  const res = await ChoysAPI.getTenantDetail();
-  if (res.error || res.statusCode >= 400) {
-    document.getElementById('conn-status').innerHTML = `<span style="color:var(--red)">Failed: ${res.message || 'Unauthorized'}</span>`;
-  } else {
-    document.getElementById('conn-status').innerHTML = `<span style="color:var(--green)">Connected! ${res.data?.name || ''}</span>`;
-    updateDashAuth(true);
+function enterExisting() {
+  if (ChoysAPI.isConnected()) {
+    showScreen('dashboard-screen');
     loadIntelligence();
+  } else {
+    showScreen('login-screen');
   }
 }
-async function sendOTP() {
-  const res = await ChoysAPI.sendOTP(document.getElementById('s-email').value);
-  alert(res.data?.message || res.message);
+function enterNew() { showScreen('chat-screen'); if (!chatState.started) startChat(); }
+
+// ---- Login Flow ----
+function onLoginEnvChange() {
+  const env = document.getElementById('login-env')?.value || 'dev';
+  ChoysAPI.setEnv(env);
+  // Also sync dashboard env selector
+  const dashEnv = document.getElementById('env-select');
+  if (dashEnv) dashEnv.value = env;
 }
-async function verifyOTP() {
-  const res = await ChoysAPI.verifyOTP(document.getElementById('s-email').value, document.getElementById('s-otp').value);
+
+async function loginSendOTP() {
+  const email = document.getElementById('login-email')?.value?.trim();
+  if (!email) { setLoginStatus('Please enter your email', 'red'); return; }
+  const btn = document.getElementById('btn-send-otp');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+  const env = document.getElementById('login-env')?.value || 'dev';
+  ChoysAPI.setEnv(env);
+  const res = await ChoysAPI.sendOTP(email);
+  btn.textContent = 'Send OTP'; btn.disabled = false;
+  if (res.error || res.statusCode >= 400) {
+    setLoginStatus(res.message || 'Failed to send OTP', 'red');
+  } else {
+    setLoginStatus('OTP sent! Check your email.', 'green');
+    document.getElementById('login-otp-section').style.display = 'block';
+    document.getElementById('login-otp')?.focus();
+  }
+}
+
+async function loginVerifyOTP() {
+  const email = document.getElementById('login-email')?.value?.trim();
+  const otp = document.getElementById('login-otp')?.value?.trim();
+  if (!otp) { setLoginStatus('Enter the 6-digit code', 'red'); return; }
+  const btn = document.getElementById('btn-verify-otp');
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+  const res = await ChoysAPI.verifyOTP(email, otp);
+  btn.textContent = 'Verify & Enter'; btn.disabled = false;
   if (res.data?.accessToken) {
-    document.getElementById('s-token').value = res.data.accessToken;
-    saveSettings();
-    alert('Authenticated!');
-    loadIntelligence();
-  } else alert('Failed: ' + (res.message || JSON.stringify(res)));
+    ChoysAPI.saveAuth(res.data.accessToken, res.data.refreshToken);
+    setLoginStatus('Authenticated! Loading dashboard...', 'green');
+    setTimeout(() => {
+      showScreen('dashboard-screen');
+      updateDashAuth(true);
+      loadIntelligence();
+    }, 500);
+  } else {
+    setLoginStatus(res.message || 'Invalid OTP', 'red');
+  }
 }
+
+function setLoginStatus(msg, color) {
+  const el = document.getElementById('login-status');
+  if (el) el.innerHTML = `<span style="color:var(--${color})">${msg}</span>`;
+}
+
+function logout() {
+  ChoysAPI.clearAuth();
+  showScreen('landing');
+}
+
 function updateDashAuth(connected) {
   const el = document.getElementById('dash-auth');
   const c = connected ?? ChoysAPI.isConnected();
   el.innerHTML = `<span class="dot ${c ? 'green' : 'red'}"></span> ${c ? 'Connected' : 'Not Connected'}`;
 }
-function syncSettingsUI() {
-  ['s-url', 'ls-url'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ChoysAPI.baseUrl; });
-  ['s-token', 'ls-token'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ChoysAPI.accessToken; });
-  ['s-oai', 'ls-oai'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ChoysAPI.openaiKey; });
-}
 
-// ---- Dashboard Tabs ----
+// ---- Dashboard Tabs (simplified — only Intelligence now) ----
 document.querySelectorAll('.dash-nav li').forEach(li => {
   li.addEventListener('click', () => {
     document.querySelectorAll('.dash-nav li').forEach(l => l.classList.remove('active'));
     li.classList.add('active');
     document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(`tab-${li.dataset.tab}`).classList.add('active');
-    const t = { intelligence: 'Intelligence Dashboard', settings: 'Settings' };
-    document.getElementById('dash-title').textContent = t[li.dataset.tab] || '';
-    const sub = { intelligence: 'AI-powered analysis of your Choys tenant', settings: 'API connection & authentication' };
-    document.getElementById('dash-subtitle').textContent = sub[li.dataset.tab] || '';
+    const tab = document.getElementById(`tab-${li.dataset.tab}`);
+    if (tab) tab.classList.add('active');
   });
 });
 
@@ -101,80 +107,60 @@ function onPeriodChange() {
   loadIntelligence();
 }
 
-// ---- Environment Selector ----
-const ENV_URLS = {
-  dev: 'https://api.dev.choysapp.com',
-  prod: 'https://prodapi.choysapp.com'
-};
-
+// ---- Environment Selector (Dashboard) ----
 function onEnvChange() {
   const env = document.getElementById('env-select')?.value || 'dev';
-  const newUrl = ENV_URLS[env];
-  ChoysAPI.baseUrl = newUrl;
-  localStorage.setItem('choys_base_url', newUrl);
-  // Clear current tokens — user must re-auth for new env
-  ChoysAPI.accessToken = '';
-  ChoysAPI.refreshToken = '';
-  ChoysAPI.selectedTenantId = null;
-  localStorage.removeItem('choys_access_token');
-  localStorage.removeItem('choys_refresh_token');
-  // Update settings UI
-  syncSettingsUI();
-  updateDashAuth();
-  // Reset tenant dropdown
-  const tSel = document.getElementById('tenant-select');
-  if (tSel) tSel.innerHTML = '<option value="all">All Tenants (Global)</option>';
-  // Switch to settings tab so user can authenticate
-  document.querySelectorAll('.dash-nav li').forEach(l => l.classList.remove('active'));
-  document.querySelector('.dash-nav li[data-tab="settings"]')?.classList.add('active');
-  document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-settings')?.classList.add('active');
-  document.getElementById('dash-title').textContent = 'Settings';
-  document.getElementById('dash-subtitle').textContent = `Switched to ${env.toUpperCase()} — please authenticate`;
-  document.getElementById('conn-status').innerHTML = `<span style="color:var(--yellow)">Switched to ${env.toUpperCase()}. Please send OTP to authenticate.</span>`;
+  ChoysAPI.setEnv(env);
+  ChoysAPI.clearAuth();
+  // Redirect to login screen for new env
+  const loginEnv = document.getElementById('login-env');
+  if (loginEnv) loginEnv.value = env;
+  document.getElementById('login-status').innerHTML = `<span style="color:var(--yellow)">Switched to ${env.toUpperCase()} — please sign in.</span>`;
+  document.getElementById('login-otp-section').style.display = 'none';
+  showScreen('login-screen');
 }
 
 function initEnvSelector() {
-  const sel = document.getElementById('env-select');
-  if (!sel) return;
-  // Detect current env from stored base URL
-  const current = ChoysAPI.baseUrl;
-  if (current.includes('prodapi')) sel.value = 'prod';
-  else sel.value = 'dev';
+  const env = getCookie('choys_env') || 'dev';
+  const dashSel = document.getElementById('env-select');
+  const loginSel = document.getElementById('login-env');
+  if (dashSel) dashSel.value = env;
+  if (loginSel) loginSel.value = env;
 }
 
 // ---- Tenant Selector ----
 let _tenantList = [];
 let _currentTenantName = '';
+let _authTenantName = ''; // The tenant this token is scoped to
 
 function onTenantChange() {
   const sel = document.getElementById('tenant-select');
   const val = sel?.value;
-  if (val === 'all') {
-    _currentTenantName = 'All Tenants';
+  if (val === 'auth') {
+    _currentTenantName = _authTenantName || 'Your Tenant';
     ChoysAPI.selectedTenantId = null;
   } else {
     const t = _tenantList.find(t => (t.id || t.tenantId) === val);
     _currentTenantName = t?.companyName || t?.name || 'Unknown';
     ChoysAPI.selectedTenantId = val;
   }
-  // Reload all intelligence data with new tenant context
   loadIntelligence();
 }
 
-function populateTenantDropdown(tenants) {
+function populateTenantDropdown(tenants, authTenantName) {
   const sel = document.getElementById('tenant-select');
   if (!sel) return;
-  const currentVal = ChoysAPI.selectedTenantId || 'all';
+  if (authTenantName) _authTenantName = authTenantName;
+  const currentVal = ChoysAPI.selectedTenantId || 'auth';
   _tenantList = Array.isArray(tenants) ? tenants : (tenants?.tenants || tenants?.data || []);
-  sel.innerHTML = '<option value="all">All Tenants (Global)</option>';
+  const label = _authTenantName || 'Your Tenant';
+  sel.innerHTML = `<option value="auth">${label} (Current)</option>`;
   _tenantList.forEach(t => {
     const name = t.companyName || t.name || 'Unknown';
     const id = t.id || t.tenantId || name;
     const expired = t.isExpired ? ' (Expired)' : '';
     sel.innerHTML += `<option value="${id}">${name}${expired}</option>`;
   });
-  // Restore previously selected tenant
   sel.value = currentVal;
 }
 
@@ -300,16 +286,21 @@ async function loadIntelligence() {
   // Store extended data
   window._rawData = { ...window._rawData, moodTracker: mTrack, moodRecord: mRec, coinInsights: cIns, productivity: aiProd };
 
-  // Set current tenant name from tenant detail or selected dropdown (before rendering people table)
+  // Resolve auth tenant name (the tenant this token belongs to)
+  const tenantDetail = await ChoysAPI.getTenantDetail();
+  const td = tenantDetail?.data?.tenant || tenantDetail?.data || {};
+  _authTenantName = td.companyName || td.name || 'Your Tenant';
+  // Set current display name
   if (ChoysAPI.selectedTenantId) {
-    // Using dropdown-selected tenant name
     const t = _tenantList.find(t => (t.id || t.tenantId) === ChoysAPI.selectedTenantId);
     if (t) _currentTenantName = t.companyName || t.name || 'Unknown';
   } else {
-    const tenantDetail = await ChoysAPI.getTenantDetail();
-    const td = tenantDetail?.data?.tenant || tenantDetail?.data || {};
-    _currentTenantName = td.companyName || td.name || 'Current Tenant';
+    _currentTenantName = _authTenantName;
   }
+
+  // Re-render health headline now that we know the tenant name
+  const updatedScore = computeHealthScore(stats, delta, aiIns, totalUsers, pendingUsers);
+  document.getElementById('health-headline').textContent = updatedScore.headline;
 
   // Render phase 2 sections
   renderMoodInsights(mTrack, mRec, mMeter, mPart);
@@ -318,7 +309,7 @@ async function loadIntelligence() {
   renderProductivity(aiProd);
   renderSuccessTracker(aiIns);
   renderPeopleTable(uList);
-  populateTenantDropdown(tList);
+  populateTenantDropdown(tList, _authTenantName);
 
   // === PHASE 3: AI Key Insights + Auto Deep Analysis ===
   generateKeyInsights(score, aiIns, mMeter, mPart, recog, cIns, us, stats);
@@ -436,19 +427,20 @@ function computeHealthScore(stats, delta, ai, totalUsers, pendingUsers) {
 
   if (stats.totalSteps > 0) badges.push({ text: `${stats.totalSteps.toLocaleString()} Steps`, type: 'info' });
 
+  const tn = _currentTenantName || 'your team';
   let headline, subline;
   if (score >= 70) {
-    headline = 'Choys is working well for your team';
+    headline = `${tn} is thriving on Choys`;
     subline = 'Strong engagement across multiple features. Keep the momentum going!';
   } else if (score >= 40) {
-    headline = 'Good start — room to grow';
+    headline = `${tn} — good start, room to grow`;
     subline = 'Some features are getting traction. Focus on activating pending users and broadening feature use.';
   } else if (score > 0) {
-    headline = 'Early days — let\'s build momentum';
-    subline = 'Your team is just getting started. Run a kickoff campaign to boost adoption.';
+    headline = `${tn} — early days, let's build momentum`;
+    subline = 'The team is just getting started. Run a kickoff campaign to boost adoption.';
   } else {
-    headline = 'No activity yet';
-    subline = 'Connect your API token or start onboarding users to see your wellness scorecard.';
+    headline = `${tn} — no activity yet`;
+    subline = 'Start onboarding users to see the wellness scorecard.';
   }
 
   return { value: score, headline, subline, badges };
@@ -1375,12 +1367,10 @@ function showHandoff() {
 
 // ---- Init ----
 (function() {
-  // Load OpenAI key from Vercel env (injected via env.js) or localStorage
-  if (!ChoysAPI.openaiKey && window.__ENV__?.OPENAI_API_KEY) {
+  // Load OpenAI key from Vercel env (injected via env.js)
+  if (window.__ENV__?.OPENAI_API_KEY) {
     ChoysAPI.openaiKey = window.__ENV__.OPENAI_API_KEY;
-    localStorage.setItem('choys_openai_key', ChoysAPI.openaiKey);
   }
-  syncSettingsUI();
-  updateDashAuth();
   initEnvSelector();
+  updateDashAuth();
 })();
