@@ -133,16 +133,23 @@ let _tenantList = [];
 let _currentTenantName = '';
 let _authTenantName = ''; // The tenant this token is scoped to
 
-function onTenantChange() {
+async function onTenantChange() {
   const sel = document.getElementById('tenant-select');
   const val = sel?.value;
   if (val === 'auth') {
+    // Restore original auth token
+    if (ChoysAPI._origAccessToken) {
+      ChoysAPI.accessToken = ChoysAPI._origAccessToken;
+      setCookie('choys_access_token', ChoysAPI._origAccessToken);
+    }
     _currentTenantName = _authTenantName || 'Your Tenant';
     ChoysAPI.selectedTenantId = null;
   } else {
     const t = _tenantList.find(t => (t.id || t.tenantId) === val);
     _currentTenantName = t?.companyName || t?.name || 'Unknown';
     ChoysAPI.selectedTenantId = val;
+    // Try to switch tenant context via portal impersonation
+    await ChoysAPI.switchTenant(val);
   }
   loadIntelligence();
 }
@@ -287,7 +294,11 @@ async function loadIntelligence() {
   window._rawData = { ...window._rawData, moodTracker: mTrack, moodRecord: mRec, coinInsights: cIns, productivity: aiProd };
 
   // Resolve auth tenant name (the tenant this token belongs to)
+  // Temporarily clear tenant override so we get the AUTH tenant, not the selected one
+  const savedTenantId = ChoysAPI.selectedTenantId;
+  ChoysAPI.selectedTenantId = null;
   const tenantDetail = await ChoysAPI.getTenantDetail();
+  ChoysAPI.selectedTenantId = savedTenantId;
   const td = tenantDetail?.data?.tenant || tenantDetail?.data || {};
   _authTenantName = td.companyName || td.name || 'Your Tenant';
   // Set current display name

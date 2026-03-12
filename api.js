@@ -35,8 +35,14 @@ const ChoysAPI = {
   async request(method, path, body = null) {
     const opts = { method, headers: this.headers() };
     if (body) opts.body = JSON.stringify(body);
+    // Append tenantId as query param when a tenant is selected
+    let url = `${this.baseUrl}${path}`;
+    if (this.selectedTenantId) {
+      const sep = url.includes('?') ? '&' : '?';
+      url += `${sep}tenantId=${encodeURIComponent(this.selectedTenantId)}`;
+    }
     try {
-      const res = await fetch(`${this.baseUrl}${path}`, opts);
+      const res = await fetch(url, opts);
       const data = await res.json();
       if (data?.data?.accessToken) {
         this.accessToken = data.data.accessToken;
@@ -74,6 +80,34 @@ const ChoysAPI = {
 
   // === Tenant List (Portal) ===
   getTenantList() { return this.get('/v2/portal/tenants'); },
+
+  // Switch to a different tenant's context (portal impersonation)
+  async switchTenant(tenantId) {
+    if (!this._origAccessToken) {
+      this._origAccessToken = this.accessToken; // save original token
+    }
+    try {
+      const res = await fetch(`${this.baseUrl}/v2/portal/tenants/${tenantId}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this._origAccessToken}`,
+          'app-platform': 'choys-web-app'
+        }
+      });
+      const data = await res.json();
+      const token = data?.data?.accessToken;
+      if (token) {
+        this.accessToken = token;
+        setCookie('choys_access_token', token);
+        console.log(`Switched to tenant ${tenantId}`);
+      } else {
+        console.warn('Tenant switch: no token returned, falling back to header-based approach', data);
+      }
+    } catch (e) {
+      console.warn('Tenant switch endpoint not available, using header fallback', e.message);
+    }
+  },
 
   // === Mood ===
   getMoodMeterStats(period = 12) { return this.get(`/web/mood/stats/mood-meter?period=${period}`); },
