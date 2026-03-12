@@ -133,23 +133,16 @@ let _tenantList = [];
 let _currentTenantName = '';
 let _authTenantName = ''; // The tenant this token is scoped to
 
-async function onTenantChange() {
+function onTenantChange() {
   const sel = document.getElementById('tenant-select');
   const val = sel?.value;
   if (val === 'auth') {
-    // Restore original auth token
-    if (ChoysAPI._origAccessToken) {
-      ChoysAPI.accessToken = ChoysAPI._origAccessToken;
-      setCookie('choys_access_token', ChoysAPI._origAccessToken);
-    }
     _currentTenantName = _authTenantName || 'Your Tenant';
     ChoysAPI.selectedTenantId = null;
   } else {
     const t = _tenantList.find(t => (t.id || t.tenantId) === val);
     _currentTenantName = t?.companyName || t?.name || 'Unknown';
     ChoysAPI.selectedTenantId = val;
-    // Try to switch tenant context via portal impersonation
-    await ChoysAPI.switchTenant(val);
   }
   loadIntelligence();
 }
