@@ -1,0 +1,1 @@
+{"message":"success","data":{"data":{"moodDistribution":[{"mood_value":1,"distribution":[3,0,0,3]},{"mood_value":2,"distribution":[1,0,0,0]},{"mood_value":3,"distribution":[0,0,2,0]},{"mood_value":4,"distribution":[4,11,6,6]},{"mood_value":5,"distribution":[0,0,0,2]}],"topReasons":["Other","Personal"]}},"statusCode":200,"meta":{}}
