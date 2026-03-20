@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Choys Intelligence</title>
+  <title>Choys — Launch a Movement</title>
+  <meta name="theme-color" content="#ffffff">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="stylesheet" href="styles.css">
-  <script src="env.js"></script>
+  <link rel="stylesheet" href="styles.css?v=5">
+  <script src="env.js?v=2"></script>
 </head>
 <body>
 
@@ -15,21 +16,33 @@
   <div id="landing" class="screen active">
     <div class="landing-container">
       <div class="landing-logo">
-        <div class="logo-icon">C</div>
-        <h1>Choys Intelligence</h1>
-        <p class="landing-subtitle">AI-powered employee wellness insights</p>
+        <div class="logo-icon" style="background:#E8673C;color:#fff;font-weight:800">C</div>
+        <h1 style="color:#1a1f36">CHOYS</h1>
+        <p class="landing-subtitle" style="color:#8892a4">Launch a Movement</p>
       </div>
-      <div class="landing-cards">
+      <div class="landing-cards three-col">
         <div class="landing-card" onclick="enterExisting()">
-          <div class="card-icon">📊</div>
-          <h3>Existing Customer</h3>
+          <div class="card-icon" style="background:rgba(232,103,60,.1)">📊</div>
+          <h3>Global Analytics</h3>
           <p>Deep dive into your tenant data — WoW trends, feature adoption, stickiness, AI insights</p>
           <div class="card-arrow">→</div>
         </div>
         <div class="landing-card" onclick="enterNew()">
-          <div class="card-icon">💬</div>
-          <h3>New Customer</h3>
-          <p>Talk to our AI agent — it will understand your company and suggest tailored wellness programs</p>
+          <div class="card-icon" style="background:rgba(52,152,219,.1)">💬</div>
+          <h3>Onboarding</h3>
+          <p>AI-guided setup — we'll understand your company and build tailored wellness programs step by step</p>
+          <div class="card-arrow">→</div>
+        </div>
+        <div class="landing-card perma-card" onclick="enterPerma()">
+          <div class="card-icon perma-glow" style="background:rgba(155,89,182,.1)">🧠</div>
+          <h3>PERMA Survey</h3>
+          <p>AI-powered wellbeing measurement — understand your team's flourishing score across 5 dimensions</p>
+          <div class="card-arrow">→</div>
+        </div>
+        <div class="landing-card" onclick="enterPerma(); setTimeout(openSurveyBuilder, 300)">
+          <div class="card-icon" style="background:rgba(46,204,113,.1)">📝</div>
+          <h3>Create Survey</h3>
+          <p>Build custom surveys with emoji scales, polls, sliders, star ratings — fun and engaging for your team</p>
           <div class="card-arrow">→</div>
         </div>
       </div>
@@ -41,7 +54,7 @@
     <div class="login-container">
       <button class="back-btn" onclick="goHome()">← Back</button>
       <div class="login-box">
-        <div class="logo-icon">C</div>
+        <div class="logo-icon" style="background:#E8673C;color:#fff;font-weight:800">C</div>
         <h2>Sign In</h2>
         <p class="text-muted">Enter your email to access the Intelligence Dashboard</p>
         <div class="login-env-row">
@@ -70,15 +83,26 @@
 
   <!-- ============ CHAT AGENT (New Customer) ============ -->
   <div id="chat-screen" class="screen">
+    <canvas id="confetti-canvas"></canvas>
     <div class="chat-container">
       <div class="chat-header">
         <button class="back-btn" onclick="goHome()">← Back</button>
         <div class="chat-header-info">
-          <div class="agent-avatar">C</div>
+          <div class="agent-avatar" style="background:#E8673C;color:#fff;font-weight:700;font-size:13px">Bo</div>
           <div>
-            <h3>Choys Agent</h3>
+            <h3>Bo — Wellbeing Officer</h3>
             <span class="agent-status">Online</span>
           </div>
+        </div>
+        <div class="chat-step-indicator" id="chat-step-indicator">
+          <div class="chat-step-dot" data-step="1" title="Company"></div>
+          <div class="chat-step-dot" data-step="2" title="Industry"></div>
+          <div class="chat-step-dot" data-step="3" title="Size"></div>
+          <div class="chat-step-dot" data-step="4" title="Goals"></div>
+          <div class="chat-step-dot" data-step="5" title="Challenges"></div>
+          <div class="chat-step-dot" data-step="6" title="Team"></div>
+          <div class="chat-step-dot" data-step="7" title="Programs"></div>
+          <span class="chat-step-label" id="chat-step-label"></span>
         </div>
         <div class="chat-header-actions">
           <button class="btn btn-sm btn-ghost" onclick="resetChat()">Start Over</button>
@@ -88,11 +112,707 @@
       <div class="chat-messages" id="chat-messages"></div>
       <div id="chat-options" class="chat-options"></div>
       <div class="chat-input-area">
-        <textarea id="chat-input" class="chat-input" placeholder="Type your message..." rows="1" onkeydown="handleChatKey(event)"></textarea>
+        <textarea id="chat-input" class="chat-input" placeholder="Type your message... (Enter to send)" rows="1" onkeydown="handleChatKey(event)"></textarea>
         <button class="chat-send" id="chat-send" onclick="sendUserMessage()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ============ PERMA DASHBOARD (Empty State) ============ -->
+  <div id="perma-screen" class="screen">
+    <div class="perma-page">
+      <!-- Header bar -->
+      <div class="perma-dash-header">
+        <div class="perma-dash-header-left">
+          <button class="back-btn" onclick="goHome()">← Back</button>
+          <span class="perma-logo">🧠 PERMA <span class="perma-by">by Choys</span></span>
+        </div>
+        <div class="perma-dash-header-right">
+          <span class="pdh-status">Not Activated</span>
+          <a href="https://perma.choysapp.com" target="_blank" class="btn btn-ghost btn-sm">Visit Landing Page ↗</a>
+        </div>
+      </div>
+
+      <!-- Empty State Hero -->
+      <div class="perma-empty-hero">
+        <div class="peh-content">
+          <div class="peh-badge">🔬 Wellbeing Intelligence</div>
+          <h1>Understand Your Team's <span class="perma-gradient-text">Flourishing Score</span></h1>
+          <p>PERMA measures 5 scientifically-validated wellbeing dimensions. Activate to start collecting data via monthly micro-surveys — Choys manages everything.</p>
+          <button class="btn perma-btn-primary" onclick="activatePermaDash()">Activate PERMA Survey</button>
+        </div>
+      </div>
+
+      <!-- ===== EMPTY STATE ===== -->
+      <div class="perma-dash-body" id="perma-empty-state">
+
+        <!-- 5 Pillar Score Cards (greyed out / empty) -->
+        <h3 class="pdb-section-title">5 Dimensions of Flourishing</h3>
+        <p class="pdb-section-sub">Once activated, you'll see real scores from your team here.</p>
+        <div class="perma-pillar-grid">
+          <div class="perma-pillar-card empty" data-pillar="P" style="--pillar-color:#f39c12">
+            <div class="ppc-letter">P</div>
+            <div class="ppc-icon">☀️</div>
+            <h4>Positive Emotions</h4>
+            <p>Do your people feel optimistic about their work?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring" data-score="0" data-color="#f39c12" width="60" height="60"></canvas><span class="ppc-score-val empty-val">--</span></div>
+          </div>
+          <div class="perma-pillar-card empty" data-pillar="E" style="--pillar-color:#3498db">
+            <div class="ppc-letter">E</div>
+            <div class="ppc-icon">🎯</div>
+            <h4>Engagement</h4>
+            <p>Are they in flow — fully absorbed and energized?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring" data-score="0" data-color="#3498db" width="60" height="60"></canvas><span class="ppc-score-val empty-val">--</span></div>
+          </div>
+          <div class="perma-pillar-card empty" data-pillar="R" style="--pillar-color:#9b59b6">
+            <div class="ppc-letter">R</div>
+            <div class="ppc-icon">🤝</div>
+            <h4>Relationships</h4>
+            <p>Do they have meaningful connections at work?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring" data-score="0" data-color="#9b59b6" width="60" height="60"></canvas><span class="ppc-score-val empty-val">--</span></div>
+          </div>
+          <div class="perma-pillar-card empty" data-pillar="M" style="--pillar-color:#1abc9c">
+            <div class="ppc-letter">M</div>
+            <div class="ppc-icon">🧭</div>
+            <h4>Meaning</h4>
+            <p>Does their work feel purposeful beyond a paycheck?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring" data-score="0" data-color="#1abc9c" width="60" height="60"></canvas><span class="ppc-score-val empty-val">--</span></div>
+          </div>
+          <div class="perma-pillar-card empty" data-pillar="A" style="--pillar-color:#2ecc71">
+            <div class="ppc-letter">A</div>
+            <div class="ppc-icon">🏆</div>
+            <h4>Accomplishment</h4>
+            <p>Do they feel pride and progress in what they achieve?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring" data-score="0" data-color="#2ecc71" width="60" height="60"></canvas><span class="ppc-score-val empty-val">--</span></div>
+          </div>
+        </div>
+
+        <!-- Data Promises Grid -->
+        <h3 class="pdb-section-title">What You'll See Once Active</h3>
+        <p class="pdb-section-sub">Monthly pulse surveys generate these data points automatically.</p>
+        <div class="perma-promises-grid">
+          <div class="perma-promise-card">
+            <div class="ppc-icon-sm">📊</div>
+            <h4>Overall Flourishing Score</h4>
+            <div class="promise-empty-chart"><span class="promise-big">--<span class="promise-of">/100</span></span></div>
+            <p>Single number capturing your team's total wellbeing across all 5 PERMA dimensions.</p>
+          </div>
+          <div class="perma-promise-card">
+            <div class="ppc-icon-sm">📈</div>
+            <h4>Trend Over Time</h4>
+            <div class="promise-empty-chart"><div class="promise-line"></div></div>
+            <p>Monthly tracking shows whether wellbeing is improving, stable, or declining.</p>
+          </div>
+          <div class="perma-promise-card">
+            <div class="ppc-icon-sm">🏢</div>
+            <h4>Department Breakdown</h4>
+            <div class="promise-empty-chart"><div class="promise-bars"><span></span><span></span><span></span><span></span></div></div>
+            <p>See which teams are thriving and which need support — by department, location, or role.</p>
+          </div>
+          <div class="perma-promise-card">
+            <div class="ppc-icon-sm">🤖</div>
+            <h4>AI Insights</h4>
+            <div class="promise-empty-chart"><div class="promise-ai-box">AI will surface patterns...</div></div>
+            <p>AI analyzes responses and recommends interventions — "Engineering Engagement dropped 12%."</p>
+          </div>
+          <div class="perma-promise-card">
+            <div class="ppc-icon-sm">🔄</div>
+            <h4>Response Rate</h4>
+            <div class="promise-empty-chart"><span class="promise-big">--%</span></div>
+            <p>Track participation. Fun emoji/poll formats drive 80%+ response rates vs ~30% for traditional surveys.</p>
+          </div>
+          <div class="perma-promise-card">
+            <div class="ppc-icon-sm">🎯</div>
+            <h4>Intervention Tracker</h4>
+            <div class="promise-empty-chart"><div class="promise-bars short"><span></span><span></span><span></span></div></div>
+            <p>Deploy and track interventions. Measure before/after impact on each PERMA dimension.</p>
+          </div>
+        </div>
+
+        <!-- How It Works (compact) -->
+        <h3 class="pdb-section-title">How PERMA Works</h3>
+        <div class="perma-how-compact">
+          <div class="phc-step"><span class="phc-num">1</span><div><strong>We send nudges</strong><p>Monthly micro-surveys via mobile, Slack, email — emoji scales, polls, sliders. 5 min max.</p></div></div>
+          <div class="phc-arrow">→</div>
+          <div class="phc-step"><span class="phc-num">2</span><div><strong>Data flows in</strong><p>23 questions across P-E-R-M-A + Health. Anonymous. All managed by Choys.</p></div></div>
+          <div class="phc-arrow">→</div>
+          <div class="phc-step"><span class="phc-num">3</span><div><strong>Dashboard lights up</strong><p>Flourishing scores, trends, department breakdowns, AI insights — all in real-time.</p></div></div>
+        </div>
+
+        <div style="text-align:center;margin:32px 0">
+          <button class="btn perma-btn-primary" onclick="activatePermaDash()" style="font-size:16px;padding:14px 32px">Activate PERMA Survey</button>
+          <p style="font-size:12px;color:var(--muted);margin-top:8px">Free with your Choys plan. No additional cost.</p>
+        </div>
+      </div>
+
+      <!-- ===== ACTIVATED STATE (analytics) ===== -->
+      <div class="perma-dash-body" id="perma-active-state" style="display:none">
+
+        <!-- Flourishing Score Hero -->
+        <div class="perma-flourish-hero">
+          <div class="pf-ring-wrap">
+            <canvas id="perma-flourish-ring" width="180" height="180"></canvas>
+            <div class="pf-ring-label">
+              <span class="pf-score" id="pf-score-val">--</span>
+              <span class="pf-sub">Flourishing</span>
+            </div>
+          </div>
+          <div class="pf-hero-info">
+            <h2>Your Team is <span class="perma-gradient-text">Thriving</span></h2>
+            <p class="text-muted">Based on 142 responses across March 2026 pulse survey. Overall flourishing score is above industry average (68).</p>
+            <div class="pf-hero-badges">
+              <span class="badge up">+4.2 vs last month</span>
+              <span class="badge info">142/168 responded</span>
+              <span class="badge up">Top: Accomplishment 88</span>
+              <span class="badge down">Watch: Relationships 71</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 Pillar Cards (with scores) -->
+        <h3 class="pdb-section-title">5 Dimensions of Flourishing</h3>
+        <p class="pdb-section-sub">Scores from March 2026 pulse survey (142 respondents).</p>
+        <div class="perma-pillar-grid">
+          <div class="perma-pillar-card" data-pillar="P" style="--pillar-color:#f39c12">
+            <div class="ppc-letter">P</div>
+            <div class="ppc-icon">☀️</div>
+            <h4>Positive Emotions</h4>
+            <p>Do your people feel optimistic about their work?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring-active" data-score="78" data-color="#f39c12" width="60" height="60"></canvas><span class="ppc-score-val">78</span></div>
+            <div class="ppc-delta up">+3 vs Feb</div>
+          </div>
+          <div class="perma-pillar-card" data-pillar="E" style="--pillar-color:#3498db">
+            <div class="ppc-letter">E</div>
+            <div class="ppc-icon">🎯</div>
+            <h4>Engagement</h4>
+            <p>Are they in flow — fully absorbed and energized?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring-active" data-score="85" data-color="#3498db" width="60" height="60"></canvas><span class="ppc-score-val">85</span></div>
+            <div class="ppc-delta up">+5 vs Feb</div>
+          </div>
+          <div class="perma-pillar-card" data-pillar="R" style="--pillar-color:#9b59b6">
+            <div class="ppc-letter">R</div>
+            <div class="ppc-icon">🤝</div>
+            <h4>Relationships</h4>
+            <p>Do they have meaningful connections at work?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring-active" data-score="71" data-color="#9b59b6" width="60" height="60"></canvas><span class="ppc-score-val">71</span></div>
+            <div class="ppc-delta down">-2 vs Feb</div>
+          </div>
+          <div class="perma-pillar-card" data-pillar="M" style="--pillar-color:#1abc9c">
+            <div class="ppc-letter">M</div>
+            <div class="ppc-icon">🧭</div>
+            <h4>Meaning</h4>
+            <p>Does their work feel purposeful beyond a paycheck?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring-active" data-score="82" data-color="#1abc9c" width="60" height="60"></canvas><span class="ppc-score-val">82</span></div>
+            <div class="ppc-delta up">+6 vs Feb</div>
+          </div>
+          <div class="perma-pillar-card" data-pillar="A" style="--pillar-color:#2ecc71">
+            <div class="ppc-letter">A</div>
+            <div class="ppc-icon">🏆</div>
+            <h4>Accomplishment</h4>
+            <p>Do they feel pride and progress in what they achieve?</p>
+            <div class="ppc-score-ring"><canvas class="pillar-ring-active" data-score="88" data-color="#2ecc71" width="60" height="60"></canvas><span class="ppc-score-val">88</span></div>
+            <div class="ppc-delta up">+2 vs Feb</div>
+          </div>
+        </div>
+
+        <!-- Trend + Radar (2 col) -->
+        <div class="perma-analytics-row">
+          <div class="perma-chart-card">
+            <h4>Flourishing Trend (6 months)</h4>
+            <canvas id="perma-trend-chart" height="200"></canvas>
+          </div>
+          <div class="perma-chart-card">
+            <h4>PERMA Radar — Current vs Previous</h4>
+            <div style="display:flex;justify-content:center">
+              <canvas id="perma-active-radar" width="260" height="260"></canvas>
+            </div>
+            <div class="perma-radar-legend">
+              <span><span class="prl-dot" style="background:#1abc9c"></span> Mar 2026</span>
+              <span><span class="prl-dot" style="background:rgba(232,103,60,.45)"></span> Feb 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Department Breakdown -->
+        <div class="perma-chart-card" style="margin-bottom:20px">
+          <h4>Department Breakdown</h4>
+          <canvas id="perma-dept-chart" height="180"></canvas>
+        </div>
+
+        <!-- AI Insights + Response Rate + Interventions (3 col) -->
+        <div class="perma-insights-row">
+          <div class="perma-insight-card">
+            <div class="pic-icon">🤖</div>
+            <h4>AI Insights</h4>
+            <div class="perma-ai-insights">
+              <div class="pai-item severity-amber">
+                <strong>Relationships dipped in Engineering</strong>
+                <p>Down 8 pts this month. Correlates with remote-only sprint weeks. Consider team offsites.</p>
+              </div>
+              <div class="pai-item severity-green">
+                <strong>Accomplishment surging in Sales</strong>
+                <p>Up 12 pts after Q1 targets were hit early. Momentum is high — reinforce with recognition.</p>
+              </div>
+              <div class="pai-item severity-green">
+                <strong>Meaning scores up company-wide</strong>
+                <p>+6 avg. Likely driven by new OKR transparency initiative launched in Feb.</p>
+              </div>
+            </div>
+          </div>
+          <div class="perma-insight-card">
+            <div class="pic-icon">🔄</div>
+            <h4>Response Rate</h4>
+            <div class="perma-response-block">
+              <div class="prb-big">84.5<span class="prb-pct">%</span></div>
+              <p class="text-muted">142 of 168 employees responded</p>
+              <div class="prb-bar-track"><div class="prb-bar-fill" style="width:84.5%"></div></div>
+              <div class="prb-breakdown">
+                <div class="prb-row"><span>Engineering</span><span>91%</span></div>
+                <div class="prb-row"><span>Sales</span><span>88%</span></div>
+                <div class="prb-row"><span>Marketing</span><span>82%</span></div>
+                <div class="prb-row"><span>Operations</span><span>79%</span></div>
+                <div class="prb-row"><span>HR</span><span>76%</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="perma-insight-card">
+            <div class="pic-icon">🎯</div>
+            <h4>Interventions</h4>
+            <div class="perma-interventions">
+              <div class="pint-item active-int">
+                <div class="pint-status">Active</div>
+                <strong>Team Bonding Fridays</strong>
+                <p>Target: Relationships +5 pts</p>
+                <div class="pint-progress"><div class="pint-fill" style="width:60%"></div></div>
+                <span class="pint-impact">+3 so far</span>
+              </div>
+              <div class="pint-item active-int">
+                <div class="pint-status">Active</div>
+                <strong>Mindfulness Mondays</strong>
+                <p>Target: Positive Emotions +4 pts</p>
+                <div class="pint-progress"><div class="pint-fill" style="width:75%"></div></div>
+                <span class="pint-impact">+3 so far</span>
+              </div>
+              <div class="pint-item completed-int">
+                <div class="pint-status done">Completed</div>
+                <strong>OKR Transparency</strong>
+                <p>Result: Meaning +6 pts</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Survey Hub -->
+        <div style="border-top:1px solid var(--border);padding-top:32px;margin-top:16px">
+        <h3 class="pdb-section-title">Survey Hub</h3>
+        <p class="pdb-section-sub">Manage your surveys — PERMA is managed by Choys, or create your own.</p>
+
+        <div id="survey-list-section-active" style="margin-bottom:20px;display:none">
+          <h4 style="font-size:13px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.3px">Your Surveys</h4>
+          <div id="survey-list-active"></div>
+        </div>
+
+        <div class="survey-hub-grid" style="grid-template-columns:1fr 1fr">
+          <div class="survey-hub-card locked" onclick="showPermaDetail()">
+            <div class="shc-lock">🔒 Managed by Choys</div>
+            <div class="shc-icon">🧠</div>
+            <h4>PERMA Survey</h4>
+            <p>23 questions across 5 wellbeing dimensions. Anonymous. AI-powered insights.</p>
+            <div class="shc-meta">
+              <span class="shc-tag">Active</span>
+              <span class="shc-tag">Monthly</span>
+              <span class="shc-tag">Anonymous</span>
+            </div>
+            <button class="btn perma-btn-primary btn-sm" style="margin-top:12px;width:100%">View Survey Details</button>
+          </div>
+          <div class="survey-hub-card create" onclick="openSurveyBuilder()">
+            <div class="shc-icon" style="font-size:48px;opacity:.5">+</div>
+            <h4>Create Custom Survey</h4>
+            <p>Build your own survey from scratch. Add any question type — polls, scales, open text, emoji reactions.</p>
+            <button class="btn perma-btn-primary btn-sm" style="margin-top:12px;width:100%;background:var(--primary)">Create Survey</button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <!-- ===== SURVEY BUILDER OVERLAY ===== -->
+      <div id="survey-builder-overlay" class="perma-overlay" style="display:none">
+        <div class="perma-detail-panel" style="max-width:900px">
+          <div class="pdp-header">
+            <div>
+              <h2>Create Custom Survey</h2>
+              <span class="pdp-badge">Build your own survey with any question type</span>
+            </div>
+            <button class="btn btn-ghost" onclick="closeSurveyBuilder()" style="font-size:20px">&times;</button>
+          </div>
+
+          <div class="pdp-stepper">
+            <div class="pdp-step active" data-builder="0" onclick="switchBuilderTab(0)"><span class="pdp-step-num">1</span> Details</div>
+            <div class="pdp-step-line"></div>
+            <div class="pdp-step" data-builder="1" onclick="switchBuilderTab(1)"><span class="pdp-step-num">2</span> Questions</div>
+            <div class="pdp-step-line"></div>
+            <div class="pdp-step" data-builder="2" onclick="switchBuilderTab(2)"><span class="pdp-step-num">3</span> Preview</div>
+          </div>
+
+          <!-- Tab 0: Details -->
+          <div class="builder-tab active" id="builder-tab-0">
+            <div style="padding:0 24px 24px">
+              <div class="fg">
+                <label>Survey Name *</label>
+                <input id="sb-name" class="input" placeholder="e.g. Q1 Team Pulse, Onboarding Feedback">
+              </div>
+              <div class="fg">
+                <label>Description</label>
+                <textarea id="sb-desc" class="input" rows="3" placeholder="Brief description of what this survey measures..." style="resize:vertical"></textarea>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="fg">
+                  <label>Start Date</label>
+                  <input id="sb-start" class="input" type="date">
+                </div>
+                <div class="fg">
+                  <label>End Date *</label>
+                  <input id="sb-end" class="input" type="date">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="fg">
+                  <label>Visibility</label>
+                  <select id="sb-visibility" class="input">
+                    <option value="anonymous">Anonymous</option>
+                    <option value="named">Named (responses linked to user)</option>
+                  </select>
+                </div>
+                <div class="fg">
+                  <label>Frequency</label>
+                  <select id="sb-frequency" class="input">
+                    <option value="once">One-time</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                  </select>
+                </div>
+              </div>
+              <div class="fg" style="margin-top:8px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="checkbox" id="sb-popup" style="width:16px;height:16px;accent-color:#E8673C">
+                  <span>Show as first pop-up when app opens</span>
+                </label>
+                <p style="font-size:11px;color:var(--muted);margin-top:4px;margin-left:24px">Only 1 survey can be shown as pop-up at a time. This will overwrite any existing pop-up survey.</p>
+              </div>
+              <div style="text-align:right;margin-top:16px">
+                <button class="btn btn-primary" onclick="switchBuilderTab(1)">Next: Add Questions →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 1: Questions -->
+          <div class="builder-tab" id="builder-tab-1">
+            <div style="padding:0 24px 24px">
+              <div id="sb-questions-list"></div>
+              <div class="sb-add-q-bar">
+                <span style="font-size:13px;font-weight:600">Add Question</span>
+                <div class="sb-q-types">
+                  <button class="btn btn-secondary btn-sm" onclick="addBuilderQuestion('emoji')">😀 Emoji Scale</button>
+                  <button class="btn btn-secondary btn-sm" onclick="addBuilderQuestion('slider')">🎚️ Slider</button>
+                  <button class="btn btn-secondary btn-sm" onclick="addBuilderQuestion('poll')">📊 Poll / MCQ</button>
+                  <button class="btn btn-secondary btn-sm" onclick="addBuilderQuestion('stars')">⭐ Star Rating</button>
+                  <button class="btn btn-secondary btn-sm" onclick="addBuilderQuestion('thumbs')">👍 Thumbs</button>
+                  <button class="btn btn-secondary btn-sm" onclick="addBuilderQuestion('text')">✏️ Open Text</button>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:16px">
+                <button class="btn btn-secondary" onclick="switchBuilderTab(0)">← Back</button>
+                <button class="btn btn-primary" onclick="switchBuilderTab(2)">Preview Survey →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Preview -->
+          <div class="builder-tab" id="builder-tab-2">
+            <div style="padding:0 24px 24px">
+              <div class="sb-preview-wrap">
+                <div class="sb-preview-header">
+                  <h3 id="sb-preview-title">Survey Preview</h3>
+                  <p id="sb-preview-desc" class="text-muted" style="font-size:12px"></p>
+                  <div id="sb-preview-meta" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"></div>
+                </div>
+                <div id="sb-preview-questions"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:16px">
+                <button class="btn btn-secondary" onclick="switchBuilderTab(1)">← Edit Questions</button>
+                <button class="btn perma-btn-primary" onclick="saveSurvey()">Save & Publish Survey</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PERMA SURVEY DETAIL (read-only) ============ -->
+      <div id="perma-detail-overlay" class="perma-overlay" style="display:none">
+        <div class="perma-detail-panel">
+          <div class="pdp-header">
+            <div>
+              <h2>PERMA Evaluation</h2>
+              <span class="pdp-badge">🔒 Read-only — Managed by Choys</span>
+            </div>
+            <button class="btn btn-ghost" onclick="closePermaDetail()" style="font-size:20px">&times;</button>
+          </div>
+
+          <!-- Stepper -->
+          <div class="pdp-stepper">
+            <div class="pdp-step active" onclick="switchPermaTab(0)"><span class="pdp-step-num">1</span> About</div>
+            <div class="pdp-step-line"></div>
+            <div class="pdp-step" onclick="switchPermaTab(1)"><span class="pdp-step-num">2</span> Questions</div>
+            <div class="pdp-step-line"></div>
+            <div class="pdp-step" onclick="switchPermaTab(2)"><span class="pdp-step-num">3</span> Preview</div>
+          </div>
+
+          <!-- Tab 0: About -->
+          <div class="pdp-tab active" id="pdp-tab-0">
+            <div class="pdp-info-card">
+              <h3>About This Survey</h3>
+              <p>The PERMA model, developed by <strong style="color:#1abc9c">Dr. Martin Seligman</strong>, measures 5 key elements of human flourishing. This survey captures wellbeing across Positive Emotions, Engagement, Relationships, Meaning, and Accomplishment — plus a Health dimension.</p>
+            </div>
+            <div class="pdp-info-grid">
+              <div class="pdp-info-item">
+                <span class="pdp-info-label">Label</span>
+                <span class="shc-tag" style="background:rgba(26,188,156,.15);color:#1abc9c">PERMA</span>
+              </div>
+              <div class="pdp-info-item">
+                <span class="pdp-info-label">Visibility</span>
+                <span>🔒 Anonymous</span>
+              </div>
+              <div class="pdp-info-item">
+                <span class="pdp-info-label">Frequency</span>
+                <span>Monthly pulse</span>
+              </div>
+              <div class="pdp-info-item">
+                <span class="pdp-info-label">Questions</span>
+                <span>23 questions</span>
+              </div>
+              <div class="pdp-info-item">
+                <span class="pdp-info-label">Dimensions</span>
+                <span>P &middot; E &middot; R &middot; M &middot; A &middot; Health</span>
+              </div>
+              <div class="pdp-info-item">
+                <span class="pdp-info-label">Avg. time</span>
+                <span>~5 minutes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 1: Questions (fun interactive preview) -->
+          <div class="pdp-tab" id="pdp-tab-1">
+            <div class="pdp-q-dimension" data-dim="M" style="--dim-color:#1abc9c">
+              <div class="pdp-dim-header"><span class="pdp-dim-letter">M</span> Meaning</div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q1</span>
+                <p class="pdp-q-text">To what extent is your work purposeful and meaningful?</p>
+                <div class="pdp-q-emoji-scale">
+                  <button class="pdp-emoji-btn" data-val="2">😔</button>
+                  <button class="pdp-emoji-btn" data-val="4">😕</button>
+                  <button class="pdp-emoji-btn" data-val="6">😐</button>
+                  <button class="pdp-emoji-btn" data-val="8">🙂</button>
+                  <button class="pdp-emoji-btn" data-val="10">🤩</button>
+                </div>
+                <div class="pdp-q-labels"><span>Not at all</span><span>Extremely</span></div>
+              </div>
+            </div>
+
+            <div class="pdp-q-dimension" data-dim="A" style="--dim-color:#2ecc71">
+              <div class="pdp-dim-header"><span class="pdp-dim-letter">A</span> Accomplishment</div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q2</span>
+                <p class="pdp-q-text">How often do you feel you are making progress towards your work goals?</p>
+                <div class="pdp-q-slider-wrap">
+                  <input type="range" class="pdp-slider" min="0" max="10" value="7" oninput="this.nextElementSibling.textContent=this.value">
+                  <span class="pdp-slider-val">7</span>
+                </div>
+                <div class="pdp-q-labels"><span>Never</span><span>Always</span></div>
+              </div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q8</span>
+                <p class="pdp-q-text">How often do you achieve the important work goals you have set?</p>
+                <div class="pdp-q-poll">
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Rarely</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Sometimes</button>
+                  <button class="pdp-poll-btn selected" onclick="this.classList.toggle('selected')">Often</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Almost Always</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pdp-q-dimension" data-dim="E" style="--dim-color:#3498db">
+              <div class="pdp-dim-header"><span class="pdp-dim-letter">E</span> Engagement</div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q3</span>
+                <p class="pdp-q-text">At work, how often do you become absorbed in what you're doing?</p>
+                <div class="pdp-q-emoji-scale">
+                  <button class="pdp-emoji-btn" data-val="2">😔</button>
+                  <button class="pdp-emoji-btn" data-val="4">😕</button>
+                  <button class="pdp-emoji-btn" data-val="6">😐</button>
+                  <button class="pdp-emoji-btn selected" data-val="8">🙂</button>
+                  <button class="pdp-emoji-btn" data-val="10">🤩</button>
+                </div>
+                <div class="pdp-q-labels"><span>Never</span><span>Always</span></div>
+              </div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q21</span>
+                <p class="pdp-q-text">How often do you lose track of time while doing something you enjoy at work?</p>
+                <div class="pdp-q-thumbs">
+                  <button class="pdp-thumb-btn" onclick="this.classList.toggle('selected')">👎 Rarely</button>
+                  <button class="pdp-thumb-btn" onclick="this.classList.toggle('selected')">🤷 Sometimes</button>
+                  <button class="pdp-thumb-btn selected" onclick="this.classList.toggle('selected')">👍 Often</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="pdp-q-dimension" data-dim="P" style="--dim-color:#f39c12">
+              <div class="pdp-dim-header"><span class="pdp-dim-letter">P</span> Positive Emotions</div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q5</span>
+                <p class="pdp-q-text">At work, how often do you feel joyful?</p>
+                <div class="pdp-q-stars">
+                  <span class="pdp-star" onclick="selectStars(this,1)">&#9733;</span>
+                  <span class="pdp-star" onclick="selectStars(this,2)">&#9733;</span>
+                  <span class="pdp-star" onclick="selectStars(this,3)">&#9733;</span>
+                  <span class="pdp-star active" onclick="selectStars(this,4)">&#9733;</span>
+                  <span class="pdp-star" onclick="selectStars(this,5)">&#9733;</span>
+                </div>
+              </div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q10</span>
+                <p class="pdp-q-text">At work, how often do you feel positive?</p>
+                <div class="pdp-q-emoji-scale">
+                  <button class="pdp-emoji-btn" data-val="2">😔</button>
+                  <button class="pdp-emoji-btn" data-val="4">😕</button>
+                  <button class="pdp-emoji-btn" data-val="6">😐</button>
+                  <button class="pdp-emoji-btn" data-val="8">🙂</button>
+                  <button class="pdp-emoji-btn selected" data-val="10">🤩</button>
+                </div>
+                <div class="pdp-q-labels"><span>Never</span><span>Always</span></div>
+              </div>
+              <div class="pdp-q-card reverse">
+                <span class="pdp-q-num">Q7</span>
+                <p class="pdp-q-text">At work, how often do you feel anxious? <span class="pdp-reverse-tag">Reverse scored</span></p>
+                <div class="pdp-q-slider-wrap">
+                  <input type="range" class="pdp-slider reverse" min="0" max="10" value="3" oninput="this.nextElementSibling.textContent=this.value">
+                  <span class="pdp-slider-val">3</span>
+                </div>
+                <div class="pdp-q-labels"><span>Never</span><span>Always</span></div>
+              </div>
+            </div>
+
+            <div class="pdp-q-dimension" data-dim="R" style="--dim-color:#9b59b6">
+              <div class="pdp-dim-header"><span class="pdp-dim-letter">R</span> Relationships</div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q6</span>
+                <p class="pdp-q-text">To what extent do you receive help and support from coworkers?</p>
+                <div class="pdp-q-poll">
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Not at all</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">A little</button>
+                  <button class="pdp-poll-btn selected" onclick="this.classList.toggle('selected')">Quite a bit</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">A great deal</button>
+                </div>
+              </div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q19</span>
+                <p class="pdp-q-text">How satisfied are you with your professional relationships?</p>
+                <div class="pdp-q-emoji-scale">
+                  <button class="pdp-emoji-btn" data-val="2">😔</button>
+                  <button class="pdp-emoji-btn" data-val="4">😕</button>
+                  <button class="pdp-emoji-btn" data-val="6">😐</button>
+                  <button class="pdp-emoji-btn selected" data-val="8">🙂</button>
+                  <button class="pdp-emoji-btn" data-val="10">🤩</button>
+                </div>
+                <div class="pdp-q-labels"><span>Very unsatisfied</span><span>Very satisfied</span></div>
+              </div>
+            </div>
+
+            <div class="pdp-q-dimension" data-dim="H" style="--dim-color:#e74c3c">
+              <div class="pdp-dim-header"><span class="pdp-dim-letter">H</span> Health</div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q4</span>
+                <p class="pdp-q-text">In general, how would you say your health is?</p>
+                <div class="pdp-q-poll">
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Poor</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Fair</button>
+                  <button class="pdp-poll-btn selected" onclick="this.classList.toggle('selected')">Good</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Very Good</button>
+                  <button class="pdp-poll-btn" onclick="this.classList.toggle('selected')">Excellent</button>
+                </div>
+              </div>
+              <div class="pdp-q-card">
+                <span class="pdp-q-num">Q23</span>
+                <p class="pdp-q-text">Taking all things together, how happy would you say you are with your work?</p>
+                <div class="pdp-q-stars">
+                  <span class="pdp-star" onclick="selectStars(this,1)">&#9733;</span>
+                  <span class="pdp-star" onclick="selectStars(this,2)">&#9733;</span>
+                  <span class="pdp-star" onclick="selectStars(this,3)">&#9733;</span>
+                  <span class="pdp-star active" onclick="selectStars(this,4)">&#9733;</span>
+                  <span class="pdp-star" onclick="selectStars(this,5)">&#9733;</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="pdp-q-note">
+              <p>Showing interactive preview of select questions. Full survey has 23 questions across all PERMA + Health dimensions. Questions use varied formats (emoji scales, sliders, polls, star ratings, thumbs) to keep engagement high and reduce survey fatigue.</p>
+            </div>
+          </div>
+
+          <!-- Tab 2: Live Preview (phone mockup) -->
+          <div class="pdp-tab" id="pdp-tab-2">
+            <div class="pdp-preview-wrap">
+              <div class="pdp-phone">
+                <div class="pdp-phone-notch"></div>
+                <div class="pdp-phone-screen">
+                  <div class="pdp-phone-header">
+                    <span style="font-size:11px;color:#999">&lt; Back</span>
+                    <span style="font-size:13px;font-weight:700">PERMA Survey</span>
+                    <span style="font-size:11px;color:#1abc9c">3/23</span>
+                  </div>
+                  <div class="pdp-phone-progress"><div style="width:13%;height:100%;background:#1abc9c;border-radius:4px"></div></div>
+                  <div class="pdp-phone-body">
+                    <p class="pdp-phone-dim" style="color:#3498db">Engagement</p>
+                    <p class="pdp-phone-question">At work, how often do you become absorbed in what you are doing?</p>
+                    <div class="pdp-phone-emojis">
+                      <div class="pdp-phone-emoji">😔<span>Never</span></div>
+                      <div class="pdp-phone-emoji">😕<span>Rarely</span></div>
+                      <div class="pdp-phone-emoji">😐<span>Sometimes</span></div>
+                      <div class="pdp-phone-emoji active">🙂<span>Often</span></div>
+                      <div class="pdp-phone-emoji">🤩<span>Always</span></div>
+                    </div>
+                    <button class="pdp-phone-next">Next →</button>
+                  </div>
+                </div>
+              </div>
+              <div class="pdp-preview-info">
+                <h3>Mobile-First Experience</h3>
+                <p>Employees get a chat-like, one-question-at-a-time experience. No more boring spreadsheet forms.</p>
+                <div class="pdp-preview-features">
+                  <div class="pdp-pf-item"><span>🎭</span> Emoji scales instead of 0-10 numbers</div>
+                  <div class="pdp-pf-item"><span>📊</span> Interactive sliders & polls</div>
+                  <div class="pdp-pf-item"><span>⭐</span> Star ratings for satisfaction</div>
+                  <div class="pdp-pf-item"><span>👍</span> Quick thumbs up/down for speed</div>
+                  <div class="pdp-pf-item"><span>🔄</span> Progress bar to reduce drop-off</div>
+                  <div class="pdp-pf-item"><span>🎨</span> Color-coded by PERMA dimension</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="perma-footer">
+        <span>PERMA by Choys &copy; 2026</span>
+        <span class="perma-footer-links">
+          <a href="#">Privacy</a> &middot; <a href="#">Terms</a> &middot; <a href="#">Security</a>
+        </span>
+      </footer>
     </div>
   </div>
 
@@ -102,8 +822,8 @@
       <!-- Sidebar -->
       <nav class="dash-sidebar">
         <div class="dash-logo" onclick="goHome()">
-          <div class="logo-icon sm">C</div>
-          <span>Choys</span>
+          <div class="logo-icon sm" style="background:#E8673C;color:#fff;font-weight:800">C</div>
+          <span style="color:#1a1f36;font-weight:700">Choys</span>
         </div>
         <ul class="dash-nav">
           <li class="active" data-tab="intelligence">Intelligence</li>
@@ -346,7 +1066,7 @@
 
   <!-- Settings screen removed — auth handled via login screen -->
 
-  <script src="api.js"></script>
-  <script src="app.js"></script>
+  <script src="api.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

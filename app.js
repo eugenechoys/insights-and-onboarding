@@ -15,6 +15,7 @@ function enterExisting() {
   }
 }
 function enterNew() { showScreen('chat-screen'); if (!chatState.started) startChat(); }
+function enterPerma() { showScreen('perma-screen'); initPermaPage(); }
 
 // ---- Login Flow ----
 function onLoginEnvChange() {
@@ -873,7 +874,7 @@ function renderCoinsEconomy(cIns, gCards) {
         labels,
         datasets: [
           { label: 'Earned', data: earned, borderColor: '#6c5ce7', backgroundColor: 'rgba(108,92,231,.15)', fill: true, tension: .4, pointRadius: 4, pointBackgroundColor: '#6c5ce7', borderWidth: 2.5 },
-          { label: 'Donated', data: donated, borderColor: '#00cec9', backgroundColor: 'rgba(0,206,201,.08)', borderDash: [5, 3], fill: true, tension: .4, pointRadius: 4, pointBackgroundColor: '#00cec9', borderWidth: 2.5 }
+          { label: 'Donated', data: donated, borderColor: '#00cec9', backgroundColor: 'rgba(232,103,60,.06)', borderDash: [5, 3], fill: true, tension: .4, pointRadius: 4, pointBackgroundColor: '#00cec9', borderWidth: 2.5 }
         ]
       },
       options: {
@@ -1034,9 +1035,9 @@ async function askCustom() {
 //  CHAT AGENT — Guided + AI Hybrid
 // ===========================================================
 
-const SYSTEM_PROMPT = `You are the Choys Onboarding Agent — warm, fun, and smart. Think of yourself as a friendly wellness coach who also happens to be great at data.
+const SYSTEM_PROMPT = `You are Bo — Choys' AI Wellbeing Officer. You're sharp, strategic, and a little cheeky. Think of yourself as a culture consultant who's worked with 200+ companies.
 
-Context: The user is going through a guided onboarding for Choys (employee wellness platform). You've already collected structured data about their company through interactive cards and chips. Now you're helping them refine and generating program suggestions.
+Context: The user (an HR manager) is going through a guided onboarding for Choys (employee wellness platform). You're leading a strategic intake — not a boring form. You're helping them "Launch a Movement," not "set up an account."
 
 When generating programs, format EACH as:
 **[Program Name]** _(type)_
@@ -1048,7 +1049,7 @@ Suggest 4-6 programs. Use Choys features: mood tracking, step challenges, habit 
 
 End by saying something encouraging and mention the **AI Program Builder** will build these out with schedules, content, and milestones.
 
-Be playful but professional. Use emoji sparingly. Markdown formatting.`;
+Be sharp but warm. Use emoji sparingly. Markdown formatting.`;
 
 const chatState = {
   started: false,
@@ -1057,20 +1058,124 @@ const chatState = {
   data: { goals: [], painPoints: [], size: '', industry: '', arrangement: '' }
 };
 
-const STEPS = [
-  { id: 'welcome', progress: 0 },
-  { id: 'company', progress: 15 },
-  { id: 'industry', progress: 30 },
-  { id: 'goals', progress: 50 },
-  { id: 'pain', progress: 65 },
-  { id: 'team', progress: 80 },
-  { id: 'analyze', progress: 95 },
-  { id: 'done', progress: 100 }
-];
+const STEP_LABELS = ['Discovery', 'Industry', 'Squad', 'Goals', 'Challenges', 'Environment', 'Blueprint', 'Verify', 'Launch'];
 
 function setProgress(pct) {
   const bar = document.getElementById('chat-progress');
   if (bar) bar.style.width = pct + '%';
+}
+
+// --- Step indicator dots ---
+function updateStepDots(currentStep) {
+  const dots = document.querySelectorAll('.chat-step-dot');
+  dots.forEach((dot, i) => {
+    const step = i + 1;
+    dot.classList.remove('done', 'active');
+    if (step < currentStep) dot.classList.add('done');
+    else if (step === currentStep) dot.classList.add('active');
+  });
+  const label = document.getElementById('chat-step-label');
+  if (label && currentStep > 0 && currentStep <= STEP_LABELS.length) {
+    label.textContent = STEP_LABELS[currentStep - 1];
+  }
+}
+
+// --- Confetti ---
+function launchConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const particles = [];
+  const colors = ['#6c5ce7', '#00cec9', '#fdcb6e', '#ff7675', '#a29bfe', '#55efc4', '#fab1a0'];
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: canvas.width / 2 + (Math.random() - .5) * 200,
+      y: canvas.height / 2,
+      vx: (Math.random() - .5) * 12,
+      vy: Math.random() * -14 - 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 6 + 3,
+      rotation: Math.random() * 360,
+      rotSpeed: (Math.random() - .5) * 10,
+      life: 1
+    });
+  }
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      if (p.life <= 0) return;
+      alive = true;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += .35;
+      p.vx *= .99;
+      p.rotation += p.rotSpeed;
+      p.life -= .012;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * .6);
+      ctx.restore();
+    });
+    frame++;
+    if (alive && frame < 120) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(draw);
+}
+
+// --- Milestone flash ---
+function milestoneFlash() {
+  const flash = document.createElement('div');
+  flash.className = 'milestone-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 600);
+}
+
+// --- Celebration badge ---
+function showCelebration(emoji, text) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.style.cssText = 'align-self:center;animation:celebPop .5s cubic-bezier(.4,0,.2,1)';
+  div.innerHTML = `<div class="celebration-badge"><span class="cb-emoji">${emoji}</span> ${text}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+// --- Typewriter effect ---
+function typewriterMessage(text, callback) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  const content = document.createElement('div');
+  content.className = 'msg-content';
+  div.appendChild(content);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+
+  // Parse markdown first, then type it character by character
+  const parsed = marked.parse(text);
+  const temp = document.createElement('div');
+  temp.innerHTML = parsed;
+  const fullHTML = temp.innerHTML;
+
+  // Simple approach: set innerHTML and animate opacity of inner elements
+  content.innerHTML = fullHTML;
+  content.style.opacity = '0';
+  requestAnimationFrame(() => {
+    content.style.transition = 'opacity .3s ease';
+    content.style.opacity = '1';
+  });
+
+  chatState.messages.push({ role: 'assistant', content: text });
+  container.scrollTop = container.scrollHeight;
+  if (callback) setTimeout(callback, 400);
 }
 
 function startChat() {
@@ -1080,6 +1185,7 @@ function startChat() {
   container.innerHTML = '';
   clearOptions();
   setProgress(0);
+  updateStepDots(0);
   showWelcome();
 }
 
@@ -1149,25 +1255,48 @@ function sendUserMessage() {
 
 // ---- Step 0: Welcome ----
 function showWelcome() {
+  const hasKey = !!ChoysAPI.openaiKey;
   addAgentHTML(`
     <div class="welcome-card">
-      <h3>Hey there! 👋 Welcome to Choys</h3>
-      <div class="wc-time">⚡ Takes about 5 minutes — then we'll suggest programs tailored just for you</div>
-      <p style="font-size:13px;color:var(--text);margin-bottom:12px">I'm your AI wellness strategist. I'll ask a few questions about your company, understand what your team needs, and design a custom program package.</p>
-      <div class="welcome-steps">
-        <div class="welcome-step"><span class="ws-num">1</span><span class="ws-label">Your Company</span></div>
-        <div class="welcome-step"><span class="ws-num">2</span><span class="ws-label">Goals & Vibes</span></div>
-        <div class="welcome-step"><span class="ws-num">3</span><span class="ws-label">Team Setup</span></div>
-        <div class="welcome-step"><span class="ws-num">4</span><span class="ws-label">AI Programs</span></div>
+      <h3>Hey! I'm Bo, your Wellbeing Officer 👨‍✈️</h3>
+      <div class="wc-time">⚡ 3 min strategic intake — let's launch a movement for your team</div>
+      <p style="font-size:13px;color:var(--text);margin-bottom:12px">I've helped 200+ companies build thriving wellness cultures. Answer a few sharp questions and I'll craft your blueprint.</p>
+      <div class="welcome-steps" id="welcome-steps">
+        <div class="welcome-step ws-active"><span class="ws-num">1</span><span class="ws-label">Discovery</span></div>
+        <div class="welcome-step"><span class="ws-num">2</span><span class="ws-label">Blueprint</span></div>
+        <div class="welcome-step"><span class="ws-num">3</span><span class="ws-label">Verify</span></div>
+        <div class="welcome-step"><span class="ws-num">4</span><span class="ws-label">Launch</span></div>
       </div>
+      ${!hasKey ? `<div style="margin-top:12px;padding:10px 12px;background:rgba(232,103,60,.06);border:1px solid rgba(232,103,60,.2);border-radius:8px">
+        <div style="font-size:11px;color:#E8673C;margin-bottom:6px;display:flex;align-items:center;gap:4px"><span style="font-size:13px">🔑</span> Paste your OpenAI API key to enable AI features</div>
+        <div style="display:flex;gap:6px">
+          <input id="welcome-api-key" class="input" placeholder="sk-..." style="font-size:12px;flex:1">
+          <button class="btn btn-primary btn-sm" onclick="saveWelcomeKey()">Save</button>
+        </div>
+        <div id="welcome-key-status" style="font-size:10px;margin-top:4px"></div>
+      </div>` : ''}
     </div>
   `);
   setTimeout(() => {
     addAgentMessage("Let's kick things off! **What's your company name?** 🏢", true);
     showOptions(["Let me type it", "Skip — just exploring"]);
-  }, 600);
+  }, 700);
   chatState.step = 1;
   setProgress(15);
+  updateStepDots(1);
+}
+
+function saveWelcomeKey() {
+  const input = document.getElementById('welcome-api-key');
+  const status = document.getElementById('welcome-key-status');
+  const key = input?.value?.trim();
+  if (!key || !key.startsWith('sk-')) {
+    if (status) status.innerHTML = '<span style="color:var(--red)">Please enter a valid key starting with sk-</span>';
+    return;
+  }
+  ChoysAPI.openaiKey = key;
+  if (status) status.innerHTML = '<span style="color:var(--green)">Key saved! AI features enabled.</span>';
+  input.disabled = true;
 }
 
 // ---- Step Flow ----
@@ -1178,49 +1307,121 @@ async function sendMessage(text) {
   if (step === 1) {
     chatState.data.name = text;
     chatState.step = 2;
-    setProgress(30);
-    showIndustryCards();
+    setProgress(25);
+    updateStepDots(2);
+    milestoneFlash();
+    await searchCompanyAndContinue(text);
   } else if (step === 2) {
     chatState.data.industry = text;
     chatState.step = 3;
     setProgress(40);
+    updateStepDots(3);
     showSizeCards();
   } else if (step === 3) {
     chatState.data.size = text;
     chatState.step = 4;
     setProgress(50);
+    updateStepDots(4);
+    showCelebration('🔥', 'Halfway there! Keep going!');
     showGoalChips();
   } else if (step === 4) {
     chatState.step = 5;
     setProgress(65);
+    updateStepDots(5);
     showPainChips();
   } else if (step === 5) {
     chatState.step = 6;
     setProgress(80);
+    updateStepDots(6);
     showTeamCards();
   } else if (step === 6) {
     chatState.data.arrangement = text;
     chatState.step = 7;
     setProgress(90);
-    addAgentMessage("Love it! I've got everything I need. Let me cook up some programs... 🧑‍🍳✨", true);
+    updateStepDots(7);
+    showCelebration('🚀', 'All info collected! Time for AI magic!');
+    addAgentMessage("Love it! I've got everything I need. Let Bo cook up your blueprint... 🧑‍🍳✨", true);
     await generatePrograms();
   } else {
     showTyping();
     const res = await ChoysAPI.chatWithAI([...chatState.messages], { maxTokens: 1500 });
     hideTyping();
     if (res.error) {
-      addAgentMessage(`Oops: *${res.message}*\n\nCheck the OpenAI key in Settings.`);
+      addAgentMessage(`Oops: *${res.message}*\n\nPaste your OpenAI key in the welcome card above.`);
     } else {
       addAgentMessage(res.content);
-      if (res.content.toLowerCase().includes('program builder') || res.content.includes('Duration')) {
-        showHandoff();
-      }
     }
   }
 }
 
+async function searchCompanyAndContinue(companyName) {
+  // Skip AI search if no API key
+  if (!ChoysAPI.openaiKey) {
+    setProgress(30);
+    showIndustryCards();
+    return;
+  }
+
+  showTyping();
+
+  // Try web search first, fall back to regular chat
+  let searchRes = await ChoysAPI.chatWithAI([
+    { role: 'system', content: 'You are a helpful assistant with knowledge of companies worldwide. Return ONLY a valid JSON object with these fields: industry (string, e.g. "Technology", "Food & Beverage", "Finance"), size_estimate (string, e.g. "51-200", "201-500", "1000+"), description (string, 2-3 sentence company summary including what they do, their market position, and key facts), headquarters (string, city and country), founded (string or null), key_products (string, comma separated list of main products/services), employee_count (string, approximate number), mission (string, 1 sentence about their mission/vision), found (boolean). If you cannot identify the company, set found to false.' },
+    { role: 'user', content: `Search the web for the company "${companyName}" and return its details as JSON.` }
+  ], { json: true, maxTokens: 600, webSearch: true });
+
+  // Fallback to regular chat if web search fails
+  if (searchRes.error) {
+    searchRes = await ChoysAPI.chatWithAI([
+      { role: 'system', content: 'You are a helpful assistant with knowledge of companies worldwide. Return ONLY a valid JSON object with these fields: industry (string), size_estimate (string, e.g. "51-200", "1000+"), description (string, 2-3 sentence company summary), headquarters (string), founded (string or null), key_products (string, main products/services), employee_count (string), mission (string, 1 sentence), found (boolean). If you cannot identify the company, set found to false.' },
+      { role: 'user', content: `Tell me about the company "${companyName}". Return details as JSON.` }
+    ], { json: true, maxTokens: 600 });
+  }
+
+  hideTyping();
+
+  if (!searchRes.error) {
+    try {
+      const info = JSON.parse(searchRes.content);
+      if (info.found !== false && info.description) {
+        chatState.data.companyInfo = info;
+        addAgentHTML(`
+          <div class="welcome-card" style="border-color:rgba(232,103,60,.3);background:linear-gradient(135deg,rgba(232,103,60,.04),rgba(66,153,225,.03))">
+            <h3 style="margin-bottom:8px">🔍 Here's what I found about <span style="color:#E8673C">${companyName}</span></h3>
+            <p style="font-size:13px;margin-bottom:12px;color:var(--text);line-height:1.6">${info.description}</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+              ${info.industry ? `<div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px 10px"><span style="font-size:10px;color:var(--muted);display:block">Industry</span><span style="font-size:13px;font-weight:600">${info.industry}</span></div>` : ''}
+              ${info.employee_count || info.size_estimate ? `<div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px 10px"><span style="font-size:10px;color:var(--muted);display:block">Team Size</span><span style="font-size:13px;font-weight:600">${info.employee_count || '~' + info.size_estimate}</span></div>` : ''}
+              ${info.headquarters ? `<div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px 10px"><span style="font-size:10px;color:var(--muted);display:block">Headquarters</span><span style="font-size:13px;font-weight:600">${info.headquarters}</span></div>` : ''}
+              ${info.founded ? `<div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px 10px"><span style="font-size:10px;color:var(--muted);display:block">Founded</span><span style="font-size:13px;font-weight:600">${info.founded}</span></div>` : ''}
+            </div>
+            ${info.key_products ? `<div style="font-size:11px;color:var(--muted);margin-bottom:6px"><strong style="color:var(--text)">Key Products:</strong> ${info.key_products}</div>` : ''}
+            ${info.mission ? `<div style="font-size:11px;color:var(--muted);font-style:italic">"${info.mission}"</div>` : ''}
+          </div>
+        `);
+
+        // Pre-fill data from search
+        if (info.industry) chatState.data.industry = info.industry;
+        if (info.size_estimate) chatState.data.size = info.size_estimate;
+
+        setTimeout(() => {
+          addAgentMessage(`Got a good picture of **${companyName}**! Now let's tailor your wellness programs. 💪\n\nIs this the right industry? Pick or change below 👇`, true);
+          setProgress(30);
+          showIndustryCards();
+        }, 800);
+        return;
+      }
+    } catch (e) { /* JSON parse failed, fall through */ }
+  }
+
+  // Fallback: couldn't find, just continue normally
+  setProgress(30);
+  addAgentMessage(`Nice! **${companyName}** — I've worked with companies like yours before. Let's figure out what makes your team tick. 💪`, true);
+  setTimeout(() => showIndustryCards(), 600);
+}
+
 function showIndustryCards() {
-  addAgentMessage(`Nice! **${chatState.data.name}** — let's get to know you better.\n\nWhat industry are you in? Pick one 👇`, true);
+  addAgentMessage(`What industry are you in? Tap one 👇`, true);
   addAgentHTML(`
     <div class="select-cards cols-3">
       <div class="select-card" onclick="pickCard(this,'industry')"><span class="sc-emoji">☕</span><span class="sc-title">Food & Bev</span><span class="sc-desc">Restaurants, cafes, F&B chains</span></div>
@@ -1235,7 +1436,7 @@ function showIndustryCards() {
 }
 
 function showSizeCards() {
-  addAgentMessage(`Got it — **${chatState.data.industry}** space! 🔥\n\nHow big is the team?`, true);
+  addAgentMessage(`**${chatState.data.industry}** — got it! 🔥 How many people are in your squad?`, true);
   addAgentHTML(`
     <div class="select-cards cols-3">
       <div class="select-card" onclick="pickCard(this,'size')"><span class="sc-emoji">🌱</span><span class="sc-title">1-50</span><span class="sc-desc">Small & mighty</span></div>
@@ -1248,7 +1449,7 @@ function showSizeCards() {
 }
 
 function showGoalChips() {
-  addAgentMessage(`**${chatState.data.size}** people — awesome.\n\nNow the fun part! What does your HR team want to achieve? **Pick all that apply** 👇`, true);
+  addAgentMessage(`**${chatState.data.size}** people — solid squad!\n\nWhat's the #1 thing you want to move the needle on? **Pick all that apply** 👇`, true);
   addAgentHTML(`
     <div class="chip-group" id="goal-chips">
       <div class="chip" onclick="toggleChip(this)"><span class="chip-emoji">📈</span> Increase participation <span class="chip-check">✓</span></div>
@@ -1265,7 +1466,13 @@ function showGoalChips() {
   `);
 }
 
-function toggleChip(el) { el.classList.toggle('selected'); }
+function toggleChip(el) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    el.style.transform = 'scale(1.08)';
+    setTimeout(() => { el.style.transform = ''; }, 200);
+  }
+}
 
 function confirmGoals() {
   const selected = [...document.querySelectorAll('#goal-chips .chip.selected')].map(c =>
@@ -1280,7 +1487,7 @@ function confirmGoals() {
 }
 
 function showPainChips() {
-  addAgentMessage(`Great picks! 🎯\n\nAnything bugging you right now? **Select the challenges you're facing:**`, true);
+  addAgentMessage(`Great picks! 🎯\n\nWhat's the biggest **culture-killer** right now? Select what resonates:`, true);
   addAgentHTML(`
     <div class="chip-group" id="pain-chips">
       <div class="chip" onclick="toggleChip(this)"><span class="chip-emoji">😴</span> Low engagement <span class="chip-check">✓</span></div>
@@ -1308,7 +1515,7 @@ function confirmPains() {
 }
 
 function showTeamCards() {
-  addAgentMessage(`Almost there! 🏁\n\nHow does your team work day-to-day?`, true);
+  addAgentMessage(`Almost there! 🏁\n\nRemote, Hybrid, or In-office? How does your squad work?`, true);
   addAgentHTML(`
     <div class="select-cards">
       <div class="select-card" onclick="pickCard(this,'team')"><span class="sc-emoji">🏢</span><span class="sc-title">Fully On-site</span><span class="sc-desc">Everyone comes to the office</span></div>
@@ -1322,8 +1529,12 @@ function showTeamCards() {
 function pickCard(el, type) {
   el.parentElement.querySelectorAll('.select-card').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
+  // Satisfying bounce
+  el.style.transform = 'scale(.95)';
+  setTimeout(() => { el.style.transform = 'scale(1.02)'; }, 100);
+  setTimeout(() => { el.style.transform = ''; }, 250);
   const val = el.querySelector('.sc-title').textContent;
-  setTimeout(() => { sendMessage(val); }, 400);
+  setTimeout(() => { sendMessage(val); }, 500);
 }
 
 async function generatePrograms() {
@@ -1338,36 +1549,1075 @@ Goals: ${d.goals.join(', ') || 'General wellness'}
 Pain Points: ${d.painPoints.join(', ') || 'None specified'}
 Work Arrangement: ${d.arrangement || 'Not specified'}`;
 
-  chatState.messages.push({ role: 'user', content: `Here's my company profile:\n${context}\n\nPlease suggest 4-6 tailored wellness programs for us!` });
+  // Build program list — try AI first, fallback to curated list
+  let programs = [];
 
-  const res = await ChoysAPI.chatWithAI([...chatState.messages], { maxTokens: 2000 });
+  if (ChoysAPI.openaiKey) {
+    chatState.messages.push({ role: 'user', content: `Here's my company profile:\n${context}\n\nSuggest exactly 6 tailored wellness programs. For EACH program respond in this exact JSON format (array of objects): [{"emoji":"🧘","name":"Program Name","type":"Category","duration":"X weeks","desc":"One sentence description.","why":"One sentence why it fits this company."}]. Return ONLY the JSON array, no markdown.` });
+    const res = await ChoysAPI.chatWithAI([...chatState.messages], { maxTokens: 2000 });
+    if (!res.error) {
+      try {
+        const cleaned = res.content.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+        programs = JSON.parse(cleaned);
+      } catch (e) { /* parse failed, use fallback */ }
+    }
+  }
+
+  // Fallback: curated programs based on collected data
+  if (!programs.length) {
+    const arr = d.arrangement || 'any';
+    programs = [
+      { emoji: '🧘', name: 'Mindfulness Mondays', type: 'Meditation', duration: '4 weeks', desc: `Weekly guided meditation & breathing sessions. 10 min via the Choys app.`, why: `Perfect for ${arr} teams to start the week centered and focused.` },
+      { emoji: '🏆', name: 'Recognition Culture', type: 'Peer Recognition', duration: 'Ongoing', desc: `Peer-to-peer shoutouts with Choys coins. Celebrate wins daily.`, why: `Builds belonging & motivation across your ${d.size || ''} person team.` },
+      { emoji: '🚶', name: 'Step Challenge', type: 'Fitness', duration: '30 days', desc: `Team step challenge with department leaderboards and prizes.`, why: `Drives physical health & friendly competition in ${d.industry || 'your industry'}.` },
+      { emoji: '😊', name: 'Mood Pulse Check', type: 'Mood Tracking', duration: '6 weeks', desc: `Daily emoji mood check-in (5 seconds). Real-time sentiment data.`, why: `Gives HR instant wellness visibility without survey fatigue.` },
+      { emoji: '🎯', name: 'Goal Getter', type: 'Goal Setting', duration: '8 weeks', desc: `Personal & team goal tracking with weekly check-ins and celebrations.`, why: `Aligns individual growth with ${d.name || 'company'} objectives.` },
+      { emoji: '🤝', name: 'Coffee Roulette', type: 'Social Connection', duration: 'Ongoing', desc: `Random 1-on-1 matches for virtual or in-person coffee chats.`, why: `Breaks silos and builds cross-team relationships organically.` }
+    ];
+  }
+
+  chatState.data.generatedPrograms = programs;
+
   hideTyping();
   setProgress(100);
 
-  if (res.error) {
-    addAgentMessage(`Hmm, hit a snag: *${res.message}*\n\nCheck the OpenAI key in Settings (← Back → Settings).`);
+  // Launch confetti celebration!
+  launchConfetti();
+  showCelebration('🎉', 'Your programs are ready!');
+
+  addAgentMessage(`Here's your blueprint! **${programs.length} tailored programs** for **${d.name || 'your team'}** — pick the ones you want to launch 👇`, true);
+
+  // Build selectable program cards
+  setTimeout(() => {
+    const cardsHTML = programs.map((p, i) => `
+      <div class="program-card" onclick="toggleProgram(this, ${i})" data-idx="${i}">
+        <div class="pc-header">
+          <span class="pc-emoji">${p.emoji}</span>
+          <div class="pc-check">✓</div>
+        </div>
+        <div class="pc-name">${p.name}</div>
+        <div class="pc-type">${p.type} · ${p.duration}</div>
+        <div class="pc-desc">${p.desc}</div>
+        <div class="pc-why">💡 ${p.why}</div>
+      </div>
+    `).join('');
+
+    addAgentHTML(`
+      <div class="program-grid" id="program-grid">${cardsHTML}</div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <button class="btn btn-primary btn-sm chip-confirm" onclick="confirmPrograms()">Launch Selected Programs →</button>
+        <span style="font-size:11px;color:var(--muted)" id="program-count">0 selected</span>
+      </div>
+    `);
+  }, 400);
+}
+
+function toggleProgram(el, idx) {
+  el.classList.toggle('selected');
+  // Satisfying bounce
+  if (el.classList.contains('selected')) {
+    el.style.transform = 'scale(1.03)';
+    setTimeout(() => { el.style.transform = ''; }, 200);
+  }
+  const count = document.querySelectorAll('#program-grid .program-card.selected').length;
+  const counter = document.getElementById('program-count');
+  if (counter) counter.textContent = count ? `${count} selected` : '0 selected';
+}
+
+function confirmPrograms() {
+  const selected = [...document.querySelectorAll('#program-grid .program-card.selected')];
+  if (!selected.length) { alert('Pick at least one program!'); return; }
+  const programs = chatState.data.generatedPrograms;
+  const picked = selected.map(el => programs[parseInt(el.dataset.idx)]);
+  chatState.data.selectedPrograms = picked;
+  addUserMessage(picked.map(p => `${p.emoji} ${p.name}`).join(', '));
+  // Next: pitch PERMA survey
+  setTimeout(() => pitchPermaSurvey(), 600);
+}
+
+function pitchPermaSurvey() {
+  addAgentMessage("Great picks! Before we launch, there's one more thing that'll make your programs **10x more powerful**... 🧠", true);
+
+  setTimeout(() => {
+    addAgentHTML(`
+      <div class="welcome-card" style="border-color:rgba(232,103,60,.2);background:linear-gradient(135deg,rgba(232,103,60,.03),rgba(66,153,225,.03));max-width:100%">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:32px">🧠</div>
+          <div>
+            <h3 style="margin:0;font-size:16px">PERMA Wellbeing Survey</h3>
+            <div style="font-size:11px;color:var(--muted)">by Dr. Martin Seligman — Father of Positive Psychology</div>
+          </div>
+        </div>
+
+        <p style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.6">Think of it as a <strong style="color:#E8673C">wellness health check</strong> for your team. PERMA measures 5 scientifically-validated pillars of human flourishing — so you don't just <em>run</em> programs, you <strong>measure their impact</strong>.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px">
+          <div style="background:rgba(243,156,18,.1);border:1px solid rgba(243,156,18,.3);border-radius:10px;padding:10px 6px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:#f39c12">P</div>
+            <div style="font-size:9px;color:var(--muted);line-height:1.3">Positive<br>Emotions</div>
+          </div>
+          <div style="background:rgba(52,152,219,.1);border:1px solid rgba(52,152,219,.3);border-radius:10px;padding:10px 6px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:#3498db">E</div>
+            <div style="font-size:9px;color:var(--muted);line-height:1.3">Engage-<br>ment</div>
+          </div>
+          <div style="background:rgba(155,89,182,.1);border:1px solid rgba(155,89,182,.3);border-radius:10px;padding:10px 6px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:#9b59b6">R</div>
+            <div style="font-size:9px;color:var(--muted);line-height:1.3">Relation-<br>ships</div>
+          </div>
+          <div style="background:rgba(26,188,156,.1);border:1px solid rgba(26,188,156,.3);border-radius:10px;padding:10px 6px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:#1abc9c">M</div>
+            <div style="font-size:9px;color:var(--muted);line-height:1.3">Mean-<br>ing</div>
+          </div>
+          <div style="background:rgba(46,204,113,.1);border:1px solid rgba(46,204,113,.3);border-radius:10px;padding:10px 6px;text-align:center">
+            <div style="font-size:22px;font-weight:900;color:#2ecc71">A</div>
+            <div style="font-size:9px;color:var(--muted);line-height:1.3">Accomplish-<br>ment</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px">Why add PERMA to your programs?</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="font-size:11px;color:var(--muted);line-height:1.5">📊 <strong style="color:var(--text)">Measure impact</strong> — See if your programs actually move the needle on team wellbeing</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.5">🎯 <strong style="color:var(--text)">Spot blind spots</strong> — Find which pillars need attention before burnout hits</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.5">🤖 <strong style="color:var(--text)">AI insights</strong> — Get smart recommendations based on your team's unique flourishing profile</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.5">⚡ <strong style="color:var(--text)">5 min survey</strong> — Fun emoji scales, not boring 1-10 forms. 84% avg response rate</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+          <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#1abc9c">23</div>
+            <div style="font-size:9px;color:var(--muted)">Questions</div>
+          </div>
+          <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#3498db">5 min</div>
+            <div style="font-size:9px;color:var(--muted)">Per Person</div>
+          </div>
+          <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#9b59b6">84%</div>
+            <div style="font-size:9px;color:var(--muted)">Avg Response</div>
+          </div>
+          <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:18px;font-weight:800;color:#2ecc71">Free</div>
+            <div style="font-size:9px;color:var(--muted)">With Choys</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn perma-btn-primary btn-sm" onclick="acceptPerma()" style="flex:1">Yes, add PERMA Survey! 🧠</button>
+          <button class="btn btn-secondary btn-sm" onclick="declinePerma()" style="flex:1">Skip for now</button>
+        </div>
+      </div>
+    `);
+  }, 600);
+}
+
+function acceptPerma() {
+  chatState.data.perma = true;
+  addUserMessage("Yes, add PERMA Survey! 🧠");
+  addAgentMessage("Smart move! 🎯 PERMA Survey is locked in. Your team will get monthly wellbeing check-ins with AI-powered insights.\n\nBefore we launch, I need to **verify your business** — quick OTP check! 🔐", true);
+  setTimeout(() => showOTPVerification(), 600);
+}
+
+function declinePerma() {
+  chatState.data.perma = false;
+  addUserMessage("Skip for now");
+  addAgentMessage("No worries! You can always activate PERMA later from your dashboard.\n\nBefore we launch, I need to **verify your business** — quick OTP check! 🔐", true);
+  setTimeout(() => showOTPVerification(), 600);
+}
+
+// ---- OTP Verification Step (Dummy FE) ----
+function showOTPVerification() {
+  addAgentHTML(`
+    <div class="welcome-card" style="border-color:rgba(232,103,60,.3);background:linear-gradient(135deg,rgba(232,103,60,.04),rgba(232,103,60,.02));max-width:100%">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#E8673C,#d55a32);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">🔐</div>
+        <div>
+          <h3 style="margin:0;font-size:16px">Verify Your Business</h3>
+          <div style="font-size:11px;color:var(--muted)">Quick verification to activate your programs</div>
+        </div>
+      </div>
+
+      <div id="otp-step-1">
+        <p style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.6">Enter your <strong>work email</strong> and we'll send a 6-digit verification code to confirm your identity.</p>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="otp-email" class="input" placeholder="you@company.com" style="flex:1;font-size:13px" type="email">
+          <button class="btn btn-primary btn-sm" onclick="sendOTPCode()" id="otp-send-btn">Send Code</button>
+        </div>
+        <div id="otp-email-status" style="font-size:11px;margin-top:4px"></div>
+      </div>
+
+      <div id="otp-step-2" style="display:none">
+        <p style="font-size:13px;color:var(--text);margin-bottom:12px;line-height:1.6">Enter the <strong>6-digit code</strong> sent to <span id="otp-email-display" style="color:#E8673C;font-weight:600"></span></p>
+        <div style="display:flex;gap:6px;justify-content:center;margin-bottom:12px" id="otp-inputs">
+          <input type="text" maxlength="1" class="otp-digit-input" oninput="otpDigitInput(this,0)" onkeydown="otpDigitKeydown(event,0)">
+          <input type="text" maxlength="1" class="otp-digit-input" oninput="otpDigitInput(this,1)" onkeydown="otpDigitKeydown(event,1)">
+          <input type="text" maxlength="1" class="otp-digit-input" oninput="otpDigitInput(this,2)" onkeydown="otpDigitKeydown(event,2)">
+          <input type="text" maxlength="1" class="otp-digit-input" oninput="otpDigitInput(this,3)" onkeydown="otpDigitKeydown(event,3)">
+          <input type="text" maxlength="1" class="otp-digit-input" oninput="otpDigitInput(this,4)" onkeydown="otpDigitKeydown(event,4)">
+          <input type="text" maxlength="1" class="otp-digit-input" oninput="otpDigitInput(this,5)" onkeydown="otpDigitKeydown(event,5)">
+        </div>
+        <button class="btn btn-primary" onclick="verifyOTPCode()" id="otp-verify-btn" style="width:100%">Verify & Continue →</button>
+        <div style="text-align:center;margin-top:8px">
+          <span style="font-size:11px;color:var(--muted)">Didn't receive it? </span>
+          <button class="btn btn-ghost btn-sm" onclick="resendOTPCode()" style="font-size:11px;color:#E8673C;padding:0">Resend code</button>
+        </div>
+        <div id="otp-verify-status" style="font-size:11px;margin-top:4px;text-align:center"></div>
+      </div>
+    </div>
+  `);
+}
+
+function sendOTPCode() {
+  const email = document.getElementById('otp-email')?.value?.trim();
+  const status = document.getElementById('otp-email-status');
+  if (!email || !email.includes('@')) {
+    if (status) status.innerHTML = '<span style="color:var(--red)">Please enter a valid work email</span>';
+    return;
+  }
+  const btn = document.getElementById('otp-send-btn');
+  btn.textContent = 'Sending...'; btn.disabled = true;
+
+  // Dummy: simulate sending OTP
+  setTimeout(() => {
+    btn.textContent = 'Sent ✓'; btn.style.background = 'var(--green)';
+    if (status) status.innerHTML = '<span style="color:var(--green)">Code sent! Check your inbox</span>';
+    document.getElementById('otp-step-2').style.display = 'block';
+    document.getElementById('otp-email-display').textContent = email;
+    chatState.data.verifiedEmail = email;
+    // Auto-focus first digit
+    document.querySelector('.otp-digit-input')?.focus();
+  }, 1200);
+}
+
+function otpDigitInput(el, idx) {
+  el.value = el.value.replace(/[^0-9]/g, '');
+  if (el.value && idx < 5) {
+    const inputs = document.querySelectorAll('.otp-digit-input');
+    inputs[idx + 1]?.focus();
+  }
+}
+
+function otpDigitKeydown(e, idx) {
+  if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+    const inputs = document.querySelectorAll('.otp-digit-input');
+    inputs[idx - 1]?.focus();
+  }
+}
+
+function resendOTPCode() {
+  const status = document.getElementById('otp-verify-status');
+  if (status) status.innerHTML = '<span style="color:var(--green)">Code resent!</span>';
+  setTimeout(() => { if (status) status.innerHTML = ''; }, 2000);
+}
+
+function verifyOTPCode() {
+  const inputs = document.querySelectorAll('.otp-digit-input');
+  const code = Array.from(inputs).map(i => i.value).join('');
+  const status = document.getElementById('otp-verify-status');
+
+  if (code.length < 6) {
+    if (status) status.innerHTML = '<span style="color:var(--red)">Enter all 6 digits</span>';
     return;
   }
 
-  addAgentMessage(res.content);
-  showHandoff();
-  showOptions(["Love these! 🎉", "Can you tweak them?", "Show me different options"]);
+  const btn = document.getElementById('otp-verify-btn');
+  btn.textContent = 'Verifying...'; btn.disabled = true;
+
+  // Dummy: any 6-digit code works
+  setTimeout(() => {
+    btn.textContent = 'Verified ✓';
+    btn.style.background = 'var(--green)';
+    if (status) status.innerHTML = '<span style="color:var(--green)">Business verified successfully!</span>';
+    inputs.forEach(i => { i.disabled = true; i.style.borderColor = 'var(--green)'; });
+
+    chatState.data.verified = true;
+    addUserMessage("Business verified ✓");
+    launchConfetti();
+    showCelebration('✅', 'Business Verified!');
+
+    // Generate company code and show launch options
+    setTimeout(() => showLaunchStep(), 800);
+  }, 1500);
+}
+
+// ---- Launch Step: Company Code + Invite Team Options ----
+function showLaunchStep() {
+  const companyName = chatState.data.name || 'Company';
+  const code = generateCompanyCode(companyName);
+  chatState.data.companyCode = code;
+
+  addAgentMessage(`You're verified! 🎉 Here's your unique **Company Code** — share it with your team so they can join your programs instantly.\n\nChoose how you want to onboard your squad 👇`, true);
+
+  setTimeout(() => {
+    addAgentHTML(`
+      <div class="welcome-card" style="border-color:rgba(232,103,60,.3);max-width:100%">
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Your Company Code</div>
+          <div style="background:linear-gradient(135deg,rgba(232,103,60,.08),rgba(232,103,60,.03));border:2px dashed rgba(232,103,60,.4);border-radius:12px;padding:20px;display:inline-block;min-width:240px">
+            <div id="company-code" style="font-size:32px;font-weight:900;letter-spacing:4px;color:#E8673C;font-family:monospace">${code}</div>
+          </div>
+          <div style="margin-top:10px">
+            <button class="btn btn-primary btn-sm" onclick="copyCompanyCode()">📋 Copy Code</button>
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin-top:8px">Employees download the Choys app → enter this code → they're in!</p>
+        </div>
+
+        <div style="border-top:1px solid var(--border);padding-top:16px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;text-align:center">How do you want to invite your team?</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="btn btn-primary" onclick="showCompanyCodeLaunch()" style="padding:14px;flex-direction:column;gap:4px">
+              <span style="font-size:22px">🚀</span>
+              <span style="font-weight:700">Launch with Code</span>
+              <span style="font-size:10px;opacity:.8">Share code + auto email sequence</span>
+            </button>
+            <button class="btn btn-secondary" onclick="showInviteTeamStep()" style="padding:14px;flex-direction:column;gap:4px">
+              <span style="font-size:22px">📋</span>
+              <span style="font-weight:700">Upload Team List</span>
+              <span style="font-size:10px;opacity:.8">Download XL template & bulk invite</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `);
+  }, 500);
+}
+
+function generateCompanyCode(name) {
+  const prefix = name.replace(/[^A-Z]/gi, '').toUpperCase().slice(0, 4) || 'TEAM';
+  const suffix = String(Math.floor(Math.random() * 9000) + 1000);
+  return `${prefix}-${suffix}`;
+}
+
+function copyCompanyCode() {
+  const code = chatState.data.companyCode;
+  navigator.clipboard?.writeText(code);
+  const btn = event.target.closest('button');
+  btn.textContent = '✓ Copied!';
+  setTimeout(() => { btn.innerHTML = '📋 Copy Code'; }, 2000);
+}
+
+function showCompanyCodeLaunch() {
+  addUserMessage("Launch with Code 🚀");
+  const code = chatState.data.companyCode;
+  const d = chatState.data;
+  const programNames = (d.selectedPrograms || []).map(p => p.emoji + ' ' + p.name).join(', ') || 'your programs';
+
+  addAgentMessage(`Launching **${d.name || 'your company'}**! Here's what happens next:`, true);
+
+  setTimeout(() => {
+    addAgentHTML(`
+      <div class="welcome-card" style="max-width:100%">
+        <h3 style="margin-bottom:14px">🚀 Launch Sequence Activated</h3>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#E8673C,#d55a32);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">1</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">Hour 0 — Teaser Email</div>
+              <div style="font-size:11px;color:var(--muted)">A hype email goes to your team. No code yet — just excitement!</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#E8673C,#d55a32);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">2</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">Hour 2 — Official Invite</div>
+              <div style="font-size:11px;color:var(--muted)">The official email with Company Code <strong style="color:#E8673C">${code}</strong> + app download link</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#E8673C,#d55a32);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">3</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">Employee Joins</div>
+              <div style="font-size:11px;color:var(--muted)">Download app → Enter code → Boom, they're in ${programNames}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:rgba(232,103,60,.06);border:1px solid rgba(232,103,60,.2);border-radius:10px;padding:14px;margin-bottom:14px" id="launch-pulse">
+          <div style="font-size:12px;font-weight:700;margin-bottom:8px">📊 Launch Pulse (Live)</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#E8673C" id="pulse-invites">${d.size || '0'}</div>
+              <div style="font-size:9px;color:var(--muted)">Invites Queued ✉️</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:800;color:var(--green)" id="pulse-opened">0</div>
+              <div style="font-size:9px;color:var(--muted)">Opened 👀</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:22px;font-weight:800;color:#4299e1" id="pulse-joined">0</div>
+              <div style="font-size:9px;color:var(--muted)">Joined 🎉</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="simulateLaunch()" style="width:100%;padding:14px;font-size:15px;font-weight:700" id="launch-cta">🚀 Launch Program Now</button>
+      </div>
+    `);
+  }, 500);
+}
+
+function simulateLaunch() {
+  const btn = document.getElementById('launch-cta');
+  btn.textContent = 'Launching...'; btn.disabled = true;
+  btn.style.background = 'var(--muted)';
+
+  // Simulate the launch pulse updating
+  let opened = 0, joined = 0;
+  const openedEl = document.getElementById('pulse-opened');
+  const joinedEl = document.getElementById('pulse-joined');
+
+  const interval = setInterval(() => {
+    opened += Math.floor(Math.random() * 8) + 3;
+    joined += Math.floor(Math.random() * 4) + 1;
+    if (openedEl) openedEl.textContent = opened;
+    if (joinedEl) joinedEl.textContent = joined;
+  }, 400);
+
+  setTimeout(() => {
+    clearInterval(interval);
+    btn.textContent = '✅ Launched!';
+    btn.style.background = 'var(--green)';
+    launchConfetti();
+    showCelebration('🎉', 'Program Launched!');
+    addAgentMessage(`**You're live!** 🎉\n\nThe teaser email is going out right now. In 2 hours, the official invite with code **${chatState.data.companyCode}** will land in everyone's inbox.\n\nOff to a great start! Want a "Last Call" reminder on Friday? 😉`, true);
+    showOptions(["Yes, send a Last Call Friday", "No, I'm good", "Go to Dashboard"]);
+  }, 3000);
+}
+
+function showInviteTeamStep() {
+  addAgentMessage("Love those programs? Let's get your team on board! 🚀\n\nTo launch, we need your team's details. **Download the template**, fill in names, roles, emails — then upload it back.", true);
+
+  setTimeout(() => {
+    addAgentHTML(`
+      <div class="welcome-card" style="border-color:rgba(232,103,60,.2);background:linear-gradient(135deg,rgba(232,103,60,.04),rgba(66,153,225,.03))">
+        <h3 style="margin-bottom:10px">📋 Invite Your Team</h3>
+        <p style="font-size:13px;color:var(--text);margin-bottom:16px">Download the Excel template, fill in your team members, then upload it to get started.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:28px;margin-bottom:8px">📥</div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Step 1: Download Template</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px">Excel file with columns for Name, Role, Email, Phone, Department</p>
+            <button class="btn btn-primary btn-sm" onclick="downloadTeamTemplate()" style="width:100%">Download .xlsx Template</button>
+          </div>
+          <div style="background:rgba(0,0,0,.02);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+            <div style="font-size:28px;margin-bottom:8px">📤</div>
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">Step 2: Upload Filled File</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:10px">Upload the completed file to invite everyone</p>
+            <label class="btn btn-secondary btn-sm" style="width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center">
+              Upload File
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="handleTeamUpload(this)" style="display:none">
+            </label>
+          </div>
+        </div>
+
+        <div id="upload-status"></div>
+
+        <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:8px">Or share the download link directly:</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted)">https://choysapp.com/download</div>
+            <button class="btn btn-secondary btn-sm" onclick="copyAppLink()">Copy Link</button>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <span style="font-size:20px">📱</span>
+            <div>
+              <div style="font-size:12px;font-weight:600">Get the Choys App</div>
+              <div style="font-size:11px;color:var(--muted)">Available on iOS & Android. Your team can start using wellness features right away!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+
+    showOptions(["I'll do this later", "Send invites via email instead"]);
+  }, 600);
+}
+
+function downloadTeamTemplate() {
+  // Generate a CSV file as a "template" (pretend XLSX)
+  const csvContent = 'Full Name,Job Title / Role,Email Address,Phone Number,Department\nJohn Doe,Software Engineer,john@company.com,+65 9123 4567,Engineering\nJane Smith,HR Manager,jane@company.com,+65 9876 5432,Human Resources\n,,,,\n,,,,\n,,,,\n,,,,\n,,,,\n,,,,\n,,,,\n,,,,';
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Choys_Team_Template_${chatState.data.name || 'Company'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  addAgentMessage("Template downloaded! Fill in your team members and upload it back when ready. 📝", true);
+}
+
+function handleTeamUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('upload-status');
+  status.innerHTML = `
+    <div style="background:rgba(232,103,60,.06);border:1px solid rgba(232,103,60,.15);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div class="spinner" style="width:20px;height:20px;border-width:2px;flex-shrink:0"></div>
+      <div>
+        <div style="font-size:13px;font-weight:600">Processing ${file.name}...</div>
+        <div style="font-size:11px;color:var(--muted)">Validating team data</div>
+      </div>
+    </div>
+  `;
+
+  // Simulate processing
+  setTimeout(() => {
+    status.innerHTML = `
+      <div style="background:rgba(232,103,60,.06);border:1px solid rgba(232,103,60,.25);border-radius:8px;padding:12px">
+        <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:4px">✅ File uploaded successfully!</div>
+        <div style="font-size:11px;color:var(--muted)">Found team members in ${file.name}. Invitations will be sent to their emails.</div>
+      </div>
+    `;
+    launchConfetti();
+    addAgentMessage("Your team is being invited! They'll receive an email with a link to download the Choys app and join your wellness programs. 🎉\n\nYou can track onboarding progress in the **Global Analytics** dashboard.", true);
+    showOptions(["Go to Dashboard", "Add PERMA Survey too"]);
+  }, 2000);
+}
+
+function copyAppLink() {
+  navigator.clipboard?.writeText('https://choysapp.com/download');
+  const btn = event.target;
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = 'Copy Link'; }, 2000);
 }
 
 function showHandoff() {
-  setTimeout(() => {
-    const container = document.getElementById('chat-messages');
-    const div = document.createElement('div');
-    div.className = 'msg agent';
-    div.innerHTML = `<div class="handoff-chat">
-      <h4>🚀 Ready to bring these to life?</h4>
-      <p>The <strong>AI Program Builder</strong> will create detailed schedules, challenges, content & milestones from these suggestions.</p>
-      <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="alert('Handoff to AI Program Builder — integration point. The collected company data and program suggestions would be passed to the builder.')">Launch AI Program Builder →</button>
-    </div>`;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-  }, 600);
+  // Legacy - redirect to invite step
+  showInviteTeamStep();
 }
+
+// ===========================================================
+//  PERMA LANDING PAGE
+// ===========================================================
+
+let _permaInitialized = false;
+
+function initPermaPage() {
+  if (_permaInitialized) return;
+  _permaInitialized = true;
+  setTimeout(() => {
+    drawPermaCompareRadar();
+    drawPermaDashRadar();
+    drawPillarRings();
+  }, 100);
+}
+
+function permaScrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function drawPermaCompareRadar() {
+  const canvas = document.getElementById('perma-compare-radar');
+  if (!canvas) return;
+  new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels: ['Positive Emotions', 'Engagement', 'Relationships', 'Meaning', 'Accomplishment'],
+      datasets: [{
+        label: 'PERMA Score',
+        data: [78, 85, 71, 82, 88],
+        borderColor: '#1abc9c',
+        backgroundColor: 'rgba(26,188,156,.15)',
+        borderWidth: 2,
+        pointBackgroundColor: '#1abc9c',
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: false,
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          grid: { color: 'rgba(0,0,0,.06)' },
+          angleLines: { color: 'rgba(0,0,0,.06)' },
+          pointLabels: { color: '#6b7087', font: { size: 9 } },
+          ticks: { display: false }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function drawPermaDashRadar() {
+  const canvas = document.getElementById('perma-dash-radar');
+  if (!canvas) return;
+  new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels: ['P', 'E', 'R', 'M', 'A'],
+      datasets: [{
+        label: 'Current',
+        data: [78, 85, 71, 82, 88],
+        borderColor: '#1abc9c',
+        backgroundColor: 'rgba(26,188,156,.2)',
+        borderWidth: 2,
+        pointBackgroundColor: '#1abc9c',
+        pointRadius: 5
+      }, {
+        label: 'Previous',
+        data: [72, 80, 68, 78, 82],
+        borderColor: 'rgba(108,92,231,.5)',
+        backgroundColor: 'rgba(108,92,231,.08)',
+        borderWidth: 1,
+        borderDash: [4,4],
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: false,
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          grid: { color: 'rgba(0,0,0,.06)' },
+          angleLines: { color: 'rgba(0,0,0,.06)' },
+          pointLabels: { color: '#1a1f36', font: { size: 14, weight: '700' } },
+          ticks: { display: false }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function drawPillarRings() {
+  document.querySelectorAll('.pillar-ring').forEach(canvas => {
+    const score = parseInt(canvas.dataset.score) || 0;
+    const color = canvas.dataset.color || '#1abc9c';
+    const ctx = canvas.getContext('2d');
+    const cx = 30, cy = 30, r = 24, lw = 5;
+    // Background
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = lw; ctx.stroke();
+    // Score arc
+    const angle = (score / 100) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, angle);
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+  });
+}
+
+function activatePermaDash() {
+  const status = document.querySelector('.pdh-status');
+  if (status) { status.textContent = 'Activating...'; status.style.color = '#1abc9c'; status.style.borderColor = 'rgba(26,188,156,.3)'; status.style.background = 'rgba(26,188,156,.12)'; }
+
+  // Update hero to show activating state
+  const hero = document.querySelector('.perma-empty-hero');
+  if (hero) {
+    hero.innerHTML = `<div class="peh-content"><div class="peh-badge" style="background:rgba(26,188,156,.15);color:#1abc9c">Activating...</div><h1>Setting Up <span class="perma-gradient-text">PERMA Survey</span></h1><p>Loading your analytics dashboard with sample data...</p><div class="spinner" style="margin:16px auto"></div></div>`;
+  }
+
+  setTimeout(() => {
+    if (status) { status.textContent = 'Active'; }
+    // Hide empty state, show active state
+    document.getElementById('perma-empty-state').style.display = 'none';
+    hero.style.display = 'none';
+    document.getElementById('perma-active-state').style.display = 'block';
+    // Scroll to top
+    document.getElementById('perma-screen').scrollTop = 0;
+    // Draw all analytics charts
+    drawPermaActiveDashboard();
+  }, 1800);
+}
+
+function drawPermaActiveDashboard() {
+  drawFlourishRing();
+  drawActivePillarRings();
+  drawPermaTrendChart();
+  drawPermaActiveRadar();
+  drawPermaDeptChart();
+  animateFlourishScore();
+}
+
+function animateFlourishScore() {
+  const el = document.getElementById('pf-score-val');
+  if (!el) return;
+  let current = 0;
+  const target = 81;
+  const step = () => {
+    current += 2;
+    if (current > target) current = target;
+    el.textContent = current;
+    if (current < target) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function drawFlourishRing() {
+  const canvas = document.getElementById('perma-flourish-ring');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 90, cy = 90, r = 75, lw = 10;
+  // Background ring
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = lw; ctx.stroke();
+  // Score arc (81/100)
+  const score = 81;
+  const angle = (score / 100) * Math.PI * 2 - Math.PI / 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, angle);
+  ctx.strokeStyle = '#1abc9c'; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+}
+
+function drawActivePillarRings() {
+  document.querySelectorAll('.pillar-ring-active').forEach(canvas => {
+    const score = parseInt(canvas.dataset.score) || 0;
+    const color = canvas.dataset.color || '#1abc9c';
+    const ctx = canvas.getContext('2d');
+    const cx = 30, cy = 30, r = 24, lw = 5;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,0,0,.06)'; ctx.lineWidth = lw; ctx.stroke();
+    const angle = (score / 100) * Math.PI * 2 - Math.PI / 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, angle);
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.stroke();
+  });
+}
+
+function drawPermaTrendChart() {
+  const canvas = document.getElementById('perma-trend-chart');
+  if (!canvas) return;
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
+      datasets: [
+        { label: 'Overall', data: [68, 70, 72, 74, 77, 81], borderColor: '#1abc9c', backgroundColor: 'rgba(26,188,156,.1)', fill: true, tension: .4, borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#1abc9c' },
+        { label: 'P', data: [65, 68, 70, 72, 75, 78], borderColor: '#f39c12', borderWidth: 1.5, tension: .4, pointRadius: 2, borderDash: [4,2] },
+        { label: 'E', data: [70, 72, 75, 78, 80, 85], borderColor: '#3498db', borderWidth: 1.5, tension: .4, pointRadius: 2, borderDash: [4,2] },
+        { label: 'R', data: [68, 70, 72, 74, 73, 71], borderColor: '#9b59b6', borderWidth: 1.5, tension: .4, pointRadius: 2, borderDash: [4,2] },
+        { label: 'M', data: [62, 65, 68, 70, 76, 82], borderColor: '#1abc9c80', borderWidth: 1.5, tension: .4, pointRadius: 2, borderDash: [4,2] },
+        { label: 'A', data: [72, 74, 78, 82, 86, 88], borderColor: '#2ecc71', borderWidth: 1.5, tension: .4, pointRadius: 2, borderDash: [4,2] }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#6b7087', font: { size: 10 }, boxWidth: 12, padding: 10 } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#6b7087', font: { size: 10 } } },
+        y: { min: 50, max: 100, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#6b7087', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function drawPermaActiveRadar() {
+  const canvas = document.getElementById('perma-active-radar');
+  if (!canvas) return;
+  new Chart(canvas, {
+    type: 'radar',
+    data: {
+      labels: ['P', 'E', 'R', 'M', 'A'],
+      datasets: [{
+        label: 'Mar 2026',
+        data: [78, 85, 71, 82, 88],
+        borderColor: '#1abc9c',
+        backgroundColor: 'rgba(26,188,156,.2)',
+        borderWidth: 2,
+        pointBackgroundColor: '#1abc9c',
+        pointRadius: 5
+      }, {
+        label: 'Feb 2026',
+        data: [75, 80, 73, 76, 86],
+        borderColor: 'rgba(108,92,231,.5)',
+        backgroundColor: 'rgba(108,92,231,.08)',
+        borderWidth: 1.5,
+        borderDash: [4,4],
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: false,
+      scales: {
+        r: {
+          beginAtZero: true, max: 100,
+          grid: { color: 'rgba(0,0,0,.06)' },
+          angleLines: { color: 'rgba(0,0,0,.06)' },
+          pointLabels: { color: '#1a1f36', font: { size: 14, weight: '700' } },
+          ticks: { display: false }
+        }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function drawPermaDeptChart() {
+  const canvas = document.getElementById('perma-dept-chart');
+  if (!canvas) return;
+  const depts = ['Engineering', 'Sales', 'Marketing', 'Operations', 'HR'];
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: depts,
+      datasets: [
+        { label: 'P', data: [80, 82, 74, 70, 76], backgroundColor: '#f39c12', borderRadius: 3 },
+        { label: 'E', data: [90, 84, 78, 80, 82], backgroundColor: '#3498db', borderRadius: 3 },
+        { label: 'R', data: [65, 76, 74, 72, 68], backgroundColor: '#9b59b6', borderRadius: 3 },
+        { label: 'M', data: [84, 80, 78, 82, 86], backgroundColor: '#1abc9c', borderRadius: 3 },
+        { label: 'A', data: [92, 90, 82, 84, 86], backgroundColor: '#2ecc71', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#6b7087', font: { size: 10 }, boxWidth: 12, padding: 10 } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#6b7087', font: { size: 11 } } },
+        y: { min: 50, max: 100, grid: { color: 'rgba(0,0,0,.04)' }, ticks: { color: '#6b7087', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ---- Survey Hub Functions ----
+function showPermaDetail() {
+  document.getElementById('perma-detail-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closePermaDetail() {
+  document.getElementById('perma-detail-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function switchPermaTab(idx) {
+  document.querySelectorAll('.pdp-step').forEach((s, i) => s.classList.toggle('active', i === idx));
+  document.querySelectorAll('.pdp-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+}
+
+function selectStars(el, rating) {
+  const stars = el.parentElement.querySelectorAll('.pdp-star');
+  stars.forEach((s, i) => s.classList.toggle('active', i < rating));
+}
+
+// ===========================================================
+//  SURVEY BUILDER
+// ===========================================================
+let _builderQuestions = [];
+let _savedSurveys = [];
+
+function openSurveyBuilder() {
+  _builderQuestions = [];
+  document.getElementById('sb-name').value = '';
+  document.getElementById('sb-desc').value = '';
+  document.getElementById('sb-start').value = '';
+  document.getElementById('sb-end').value = '';
+  document.getElementById('sb-popup').checked = false;
+  document.getElementById('sb-questions-list').innerHTML = '';
+  switchBuilderTab(0);
+  document.getElementById('survey-builder-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSurveyBuilder() {
+  document.getElementById('survey-builder-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function switchBuilderTab(idx) {
+  document.querySelectorAll('[data-builder]').forEach((s, i) => s.classList.toggle('active', parseInt(s.dataset.builder) === idx));
+  document.querySelectorAll('.builder-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  if (idx === 2) renderBuilderPreview();
+}
+
+function addBuilderQuestion(type) {
+  const id = Date.now();
+  const typeLabels = { emoji: 'Emoji Scale', slider: 'Slider (0-10)', poll: 'Poll / MCQ', stars: 'Star Rating', thumbs: 'Thumbs Up/Down', text: 'Open Text' };
+  const q = { id, type, text: '', options: type === 'poll' ? ['Option 1', 'Option 2'] : [] };
+  _builderQuestions.push(q);
+  renderBuilderQuestions();
+}
+
+function removeBuilderQuestion(id) {
+  _builderQuestions = _builderQuestions.filter(q => q.id !== id);
+  renderBuilderQuestions();
+}
+
+function renderBuilderQuestions() {
+  const list = document.getElementById('sb-questions-list');
+  if (_builderQuestions.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)"><p style="font-size:14px;margin-bottom:4px">No questions yet</p><p style="font-size:12px">Click a question type below to add one</p></div>';
+    return;
+  }
+  const typeLabels = { emoji: '😀 Emoji Scale', slider: '🎚️ Slider', poll: '📊 Poll / MCQ', stars: '⭐ Star Rating', thumbs: '👍 Thumbs', text: '✏️ Open Text' };
+  const typePreview = {
+    emoji: '<div style="display:flex;gap:6px;margin-top:6px"><span style="font-size:20px;opacity:.4">😔</span><span style="font-size:20px;opacity:.4">😕</span><span style="font-size:20px;opacity:.4">😐</span><span style="font-size:20px;opacity:.4">🙂</span><span style="font-size:20px;opacity:.4">🤩</span></div>',
+    slider: '<div style="margin-top:6px"><input type="range" min="0" max="10" value="5" disabled style="width:100%;accent-color:#1abc9c"></div>',
+    stars: '<div style="display:flex;gap:2px;margin-top:6px"><span style="font-size:18px;color:var(--border)">★★★★★</span></div>',
+    thumbs: '<div style="display:flex;gap:6px;margin-top:6px;font-size:11px;color:var(--muted)"><span style="padding:4px 10px;border:1px solid var(--border);border-radius:12px">👎 No</span><span style="padding:4px 10px;border:1px solid var(--border);border-radius:12px">🤷 Maybe</span><span style="padding:4px 10px;border:1px solid var(--border);border-radius:12px">👍 Yes</span></div>',
+    text: '<div style="margin-top:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;color:var(--muted)">Employee will type their response here...</div>'
+  };
+
+  list.innerHTML = _builderQuestions.map((q, i) => {
+    let optionsHTML = '';
+    if (q.type === 'poll') {
+      optionsHTML = `<div class="sb-q-options" id="opts-${q.id}">${q.options.map((o, oi) => `<div class="sb-q-option-row"><input class="input" value="${o}" placeholder="Option ${oi+1}" onchange="_builderQuestions[${i}].options[${oi}]=this.value"><button onclick="removePollOption(${q.id},${oi})">×</button></div>`).join('')}</div><button class="sb-q-add-option" onclick="addPollOption(${q.id})">+ Add option</button>`;
+    } else {
+      optionsHTML = typePreview[q.type] || '';
+    }
+    return `<div class="sb-q-card">
+      <div class="sb-q-card-header">
+        <span class="sb-q-num">Q${i+1}</span>
+        <span class="sb-q-type">${typeLabels[q.type]}</span>
+        <button class="sb-q-delete" onclick="removeBuilderQuestion(${q.id})">×</button>
+      </div>
+      <input class="input" value="${q.text}" placeholder="Enter your question..." onchange="_builderQuestions[${i}].text=this.value">
+      ${optionsHTML}
+    </div>`;
+  }).join('');
+}
+
+function addPollOption(qId) {
+  const q = _builderQuestions.find(q => q.id === qId);
+  if (q) { q.options.push(`Option ${q.options.length + 1}`); renderBuilderQuestions(); }
+}
+
+function removePollOption(qId, idx) {
+  const q = _builderQuestions.find(q => q.id === qId);
+  if (q && q.options.length > 1) { q.options.splice(idx, 1); renderBuilderQuestions(); }
+}
+
+function renderBuilderPreview() {
+  const name = document.getElementById('sb-name')?.value || 'Untitled Survey';
+  const desc = document.getElementById('sb-desc')?.value || '';
+  const endDate = document.getElementById('sb-end')?.value || '';
+  const vis = document.getElementById('sb-visibility')?.value || 'anonymous';
+  const freq = document.getElementById('sb-frequency')?.value || 'once';
+  const isPopup = document.getElementById('sb-popup')?.checked;
+
+  document.getElementById('sb-preview-title').textContent = name;
+  document.getElementById('sb-preview-desc').textContent = desc;
+
+  const meta = document.getElementById('sb-preview-meta');
+  meta.innerHTML = `
+    <span class="shc-tag">${_builderQuestions.length} Questions</span>
+    <span class="shc-tag">${vis === 'anonymous' ? '🔒 Anonymous' : '👤 Named'}</span>
+    <span class="shc-tag">${freq.charAt(0).toUpperCase() + freq.slice(1)}</span>
+    ${endDate ? `<span class="shc-tag">Ends: ${endDate}</span>` : ''}
+    ${isPopup ? '<span class="shc-tag" style="background:rgba(108,92,231,.15);color:var(--accent)">📌 Pop-up Survey</span>' : ''}
+  `;
+
+  const typeEmoji = { emoji: '😀😕😐🙂🤩', slider: '🎚️ 0-10 scale', poll: '📊', stars: '⭐⭐⭐⭐⭐', thumbs: '👎🤷👍', text: '✏️ Free text' };
+  const qList = document.getElementById('sb-preview-questions');
+  if (_builderQuestions.length === 0) {
+    qList.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted)">No questions added yet</div>';
+  } else {
+    qList.innerHTML = _builderQuestions.map((q, i) => `
+      <div class="sb-pq">
+        <span class="sb-pq-num">Question ${i+1}</span>
+        <div class="sb-pq-text">${q.text || 'Untitled question'}</div>
+        <div class="sb-pq-type-preview">${typeEmoji[q.type] || q.type}${q.type === 'poll' ? ' — ' + q.options.join(' / ') : ''}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function saveSurvey() {
+  const name = document.getElementById('sb-name')?.value?.trim();
+  if (!name) { alert('Please enter a survey name'); switchBuilderTab(0); return; }
+  if (_builderQuestions.length === 0) { alert('Please add at least one question'); switchBuilderTab(1); return; }
+
+  const isPopup = document.getElementById('sb-popup')?.checked;
+  // If popup, unset all other popups
+  if (isPopup) _savedSurveys.forEach(s => s.isPopup = false);
+
+  const survey = {
+    id: Date.now(),
+    name,
+    description: document.getElementById('sb-desc')?.value || '',
+    startDate: document.getElementById('sb-start')?.value || '',
+    endDate: document.getElementById('sb-end')?.value || '',
+    visibility: document.getElementById('sb-visibility')?.value || 'anonymous',
+    frequency: document.getElementById('sb-frequency')?.value || 'once',
+    isPopup,
+    questions: [..._builderQuestions],
+    createdAt: new Date().toISOString()
+  };
+
+  _savedSurveys.push(survey);
+  closeSurveyBuilder();
+  renderSurveyLists();
+  alert(`Survey "${name}" saved successfully!`);
+}
+
+function renderSurveyLists() {
+  const sections = ['survey-list-section', 'survey-list-section-active'];
+  const lists = ['survey-list', 'survey-list-active'];
+
+  sections.forEach((secId, idx) => {
+    const sec = document.getElementById(secId);
+    const list = document.getElementById(lists[idx]);
+    if (!sec || !list) return;
+
+    if (_savedSurveys.length === 0) {
+      sec.style.display = 'none';
+      return;
+    }
+
+    sec.style.display = 'block';
+    list.innerHTML = _savedSurveys.map(s => `
+      <div class="survey-list-card">
+        <div class="slc-info">
+          <h5>${s.name}</h5>
+          <p>${s.questions.length} questions · ${s.frequency} · ${s.visibility === 'anonymous' ? '🔒 Anonymous' : '👤 Named'}${s.endDate ? ' · Ends ' + s.endDate : ''}</p>
+        </div>
+        <div class="slc-actions">
+          ${s.isPopup ? '<span class="slc-popup-badge">📌 Pop-up</span>' : ''}
+          <button class="btn btn-secondary btn-sm" onclick="toggleSurveyPopup(${s.id})">${s.isPopup ? 'Remove Pop-up' : 'Set as Pop-up'}</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteSurvey(${s.id})">×</button>
+        </div>
+      </div>
+    `).join('');
+  });
+}
+
+function toggleSurveyPopup(id) {
+  const survey = _savedSurveys.find(s => s.id === id);
+  if (!survey) return;
+  if (!survey.isPopup) _savedSurveys.forEach(s => s.isPopup = false);
+  survey.isPopup = !survey.isPopup;
+  renderSurveyLists();
+}
+
+function deleteSurvey(id) {
+  _savedSurveys = _savedSurveys.filter(s => s.id !== id);
+  renderSurveyLists();
+}
+
+function submitPermaDemo() {
+  const name = document.getElementById('perma-name')?.value?.trim();
+  const email = document.getElementById('perma-email')?.value?.trim();
+  const company = document.getElementById('perma-company')?.value?.trim();
+  const size = document.getElementById('perma-size')?.value;
+  const status = document.getElementById('perma-form-status');
+
+  if (!name || !email || !company) {
+    status.innerHTML = '<span style="color:var(--red)">Please fill in all fields</span>';
+    return;
+  }
+
+  // Store demo request (could POST to Google Sheets or webhook)
+  status.innerHTML = '<span style="color:#1abc9c">Thanks! We\'ll be in touch within 24 hours.</span>';
+  // Clear form
+  document.getElementById('perma-name').value = '';
+  document.getElementById('perma-email').value = '';
+  document.getElementById('perma-company').value = '';
+  document.getElementById('perma-size').value = '';
+}
+
+// ===========================================================
+//  PERMA SURVEY STEP IN ONBOARDING
+// ===========================================================
+
+// Legacy PERMA functions — redirected to new flow
+function showPermaOffer() { pitchPermaSurvey(); }
+function activatePerma() { acceptPerma(); }
+function skipPerma() { declinePerma(); }
 
 // ---- Init ----
 (function() {

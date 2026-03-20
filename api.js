@@ -133,13 +133,39 @@ const ChoysAPI = {
   getLeaderboard() { return this.post('/leaderboard/users', {}); },
 
   // === OpenAI Integration ===
-  async chatWithAI(messages, { json = false, maxTokens = 2000 } = {}) {
+  async chatWithAI(messages, { json = false, maxTokens = 2000, webSearch = false } = {}) {
     if (!this.openaiKey) {
       return { error: true, message: 'OpenAI API key not configured.' };
     }
     try {
+      // Use web search via Responses API
+      if (webSearch) {
+        // Extract the user message text for the input
+        const userMsg = messages.find(m => m.role === 'user')?.content || '';
+        const sysMsg = messages.find(m => m.role === 'system')?.content || '';
+        const body = {
+          model: 'gpt-4o',
+          instructions: sysMsg,
+          input: userMsg,
+          tools: [{ type: 'web_search' }]
+        };
+        if (json) body.text = { format: { type: 'json_object' } };
+        const res = await fetch('https://api.openai.com/v1/responses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.openaiKey}` },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.error) return { error: true, message: data.error.message };
+        // Extract text output from responses API
+        const outputItems = data.output || [];
+        const textItem = outputItems.find(o => o.type === 'message');
+        const content = textItem?.content?.find(c => c.type === 'output_text')?.text || textItem?.content?.[0]?.text || 'No response';
+        return { content };
+      }
+
       const body = {
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages,
         temperature: 0.7,
         max_tokens: maxTokens
